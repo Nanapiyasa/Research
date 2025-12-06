@@ -152,20 +152,20 @@ if __name__ == "__main__":
     print("Loading dataset...")
     # df = pd.read_csv('data/sensor_game_data.csv')
     
-    # For demonstration, create sample data
-    np.random.seed(42)
-    n_samples = 1000
+    # # For demonstration, create sample data
+    # np.random.seed(42)
+    # n_samples = 1000
     
-    df = pd.DataFrame({
-        'user_id': np.repeat(range(100), 10),
-        'heart_rate': np.random.normal(75, 15, n_samples),
-        'spo2': np.random.normal(96, 2, n_samples),
-        'game_score': np.random.randint(0, 100, n_samples),
-        'game_time': np.random.uniform(30, 180, n_samples),
-        'mistakes_count': np.random.randint(0, 20, n_samples),
-        'reaction_time': np.random.uniform(0.5, 3.0, n_samples),
-        'down_syndrome_level': np.repeat(np.random.randint(0, 4, 100), 10)
-    })
+    # df = pd.DataFrame({
+    #     'user_id': np.repeat(range(100), 10),
+    #     'heart_rate': np.random.normal(75, 15, n_samples),
+    #     'spo2': np.random.normal(96, 2, n_samples),
+    #     'game_score': np.random.randint(0, 100, n_samples),
+    #     'game_time': np.random.uniform(30, 180, n_samples),
+    #     'mistakes_count': np.random.randint(0, 20, n_samples),
+    #     'reaction_time': np.random.uniform(0.5, 3.0, n_samples),
+    #     'down_syndrome_level': np.repeat(np.random.randint(0, 4, 100), 10)
+    # })
     
     # Initialize predictor
     predictor = DownSyndromePredictor()
