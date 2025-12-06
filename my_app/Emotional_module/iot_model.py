@@ -68,6 +68,8 @@ class DownSyndromePredictor:
         
         # Train model
         self.model = RandomForestClassifier(
+
+            
             n_estimators=100,
             max_depth=10,
             min_samples_split=5,
@@ -82,7 +84,7 @@ class DownSyndromePredictor:
         # Evaluate
         y_pred = self.model.predict(X_test_scaled)
 
-        
+
         
         print("\n=== Model Performance ===")
         print(f"Accuracy: {accuracy_score(y_test, y_pred):.4f}")
