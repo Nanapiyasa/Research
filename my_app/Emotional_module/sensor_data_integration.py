@@ -282,6 +282,8 @@ if __name__ == "__main__":
     
     print("=== Sensor Data Integration Pipeline ===\n")
     
+
+    
     # Calculate physiological stress
     sensor_data = integrator.calculate_physiological_stress(sensor_data)
     
