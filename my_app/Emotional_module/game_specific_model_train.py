@@ -374,6 +374,9 @@ if __name__ == "__main__":
         'down_syndrome_level': np.random.randint(0, 4, 500)
     })
     
+
+
+    
     # Train Random Forest
     rf_trainer = GameModelTrainer(model_type='random_forest')
     X, y = rf_trainer.prepare_data(df)
