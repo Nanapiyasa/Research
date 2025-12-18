@@ -349,6 +349,7 @@ def generate_recommendations(features, prediction):
     # Based on sensor data
     if features.get('heart_rate_mean', 70) > 90:
         recommendations.append("Consider relaxation techniques before sessions")
+
     
     # Based on prediction level
     if level >= 2:
@@ -361,3 +362,5 @@ def generate_recommendations(features, prediction):
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
+
+    
