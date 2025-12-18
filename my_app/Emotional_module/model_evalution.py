@@ -222,7 +222,7 @@ class ModelEvaluator:
         self.plot_confusion_matrix(y_test, y_pred, 
                                   f'{output_dir}/confusion_matrix.png')
         self.plot_feature_importance(top_n=15,
-                                     f'{output_dir}/feature_importance.png')
+                                     save_path=f'{output_dir}/feature_importance.png')
         self.plot_roc_curves(X_test, y_test,
                            f'{output_dir}/roc_curves.png')
         
