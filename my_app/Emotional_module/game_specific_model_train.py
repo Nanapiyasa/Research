@@ -269,6 +269,8 @@ class GameModelTrainer:
         for i in range(probabilities.shape[1]):
             results[f'prob_class_{i}'] = probabilities[:, i]
         
+
+        
         return results
     
     def save_model(self, filepath: str = 'models/game_model.pkl'):
@@ -349,7 +351,7 @@ class ModelEnsemble:
             probas = model.model.predict_proba(X_scaled)
             all_probas.append(probas)
 
-            
+
         
         # Weighted average
         ensemble_probas = np.average(all_probas, axis=0, 
