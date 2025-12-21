@@ -227,6 +227,8 @@ class ModelEvaluator:
                            f'{output_dir}/roc_curves.png')
         
         # Analyze misclassifications
+
+        
         misclass_data = self.analyze_misclassifications(X_test, y_test)
         
         # Save metrics
