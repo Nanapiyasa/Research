@@ -351,12 +351,14 @@ if __name__ == "__main__":
     for i, (card_id, position) in enumerate(moves):
         timestamp = start_time + timedelta(seconds=i*2 + np.random.uniform(0.5, 2))
         tracker.record_card_flip(card_id, position, timestamp)
-        
+
     
     # Get session data
     df = tracker.get_session_dataframe()
     print("\n=== Session Summary ===")
     print(df[['user_id', 'difficulty_level', 'final_score', 'accuracy', 'mistakes']])
+    
+
     
     # Analyze cognitive metrics
     analyzer = CognitiveMetricsAnalyzer(df)
