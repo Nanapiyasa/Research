@@ -323,6 +323,8 @@ def interpret_prediction(level, confidence):
     }
     
     confidence_level = "high" if confidence > 0.8 else "moderate" if confidence > 0.6 else "low"
+
+    
     
     return {
         'level': level,
@@ -365,4 +367,3 @@ if __name__ == '__main__':
 
     
 
-    
