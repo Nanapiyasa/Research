@@ -287,7 +287,7 @@ if __name__ == "__main__":
     # Calculate physiological stress
     sensor_data = integrator.calculate_physiological_stress(sensor_data)
 
-    
+
     
     # For full integration, you would:
     # 1. Load game sessions
@@ -305,6 +305,9 @@ if __name__ == "__main__":
     
     # 5. Export
     # summary = integrator.export_integrated_data(integrated_df)
+
+
+    
     
     print("\n=== Sensor Data Sample ===")
     print(sensor_data[['timestamp', 'user_id', 'heart_rate', 'spo2', 'stress_index']].head(10))
