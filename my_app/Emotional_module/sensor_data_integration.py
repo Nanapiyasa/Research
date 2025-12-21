@@ -286,6 +286,8 @@ if __name__ == "__main__":
     
     # Calculate physiological stress
     sensor_data = integrator.calculate_physiological_stress(sensor_data)
+
+    
     
     # For full integration, you would:
     # 1. Load game sessions
