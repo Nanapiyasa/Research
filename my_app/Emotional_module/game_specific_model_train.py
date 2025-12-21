@@ -348,6 +348,8 @@ class ModelEnsemble:
             X_scaled = model.scaler.transform(X)
             probas = model.model.predict_proba(X_scaled)
             all_probas.append(probas)
+
+            
         
         # Weighted average
         ensemble_probas = np.average(all_probas, axis=0, 
