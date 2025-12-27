@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'questionnaire_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +22,7 @@ class MyApp extends StatelessWidget {
       home: StudentDashboard(),
       routes: {
         '/module-selection': (_) => ModuleSelectionPage(),
+        '/student/job-role-simulation': (_) => QuestionnaireScreen(),
         // TODO: Add navigation routes like:
         // '/student/life-skills': (_) => LifeSkillsScreen(),
       },
