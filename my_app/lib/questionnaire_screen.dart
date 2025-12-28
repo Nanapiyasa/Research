@@ -22,6 +22,8 @@ class Question {
 
 // Questionnaire Screen
 class QuestionnaireScreen extends StatefulWidget {
+  const QuestionnaireScreen({super.key});
+
   @override
   State<QuestionnaireScreen> createState() => _QuestionnaireScreenState();
 }
@@ -37,6 +39,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
       optionB: "Technical Skills",
       optionC: "Leadership Roles",
       optionD: "Creative Work",
+      optionE: "",
     ),
     Question(
       questionText: "Comfort with communication",
@@ -52,6 +55,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
       optionB: "Structured",
       optionC: "Collaborative",
       optionD: "Independent",
+      optionE: "",
     ),
     Question(
       questionText: "Which skill would you like to develop most?",
@@ -59,6 +63,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
       optionB: "Problem Solving",
       optionC: "Time Management",
       optionD: "Teamwork",
+      optionE: "",
     ),
     Question(
       questionText: "How comfortable are you with using technology?",
@@ -66,6 +71,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
       optionB: "Somewhat Comfortable",
       optionC: "Learning",
       optionD: "Prefer Traditional Methods",
+      optionE: "",
     ),
     Question(
       questionText: "What motivates you most in a job?",
@@ -73,6 +79,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
       optionB: "Personal Growth",
       optionC: "Recognition",
       optionD: "Stable Income",
+      optionE: "",
     ),
   ];
 
