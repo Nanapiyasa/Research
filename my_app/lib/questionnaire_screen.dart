@@ -3,21 +3,9 @@ import 'package:flutter/material.dart';
 // Question model
 class Question {
   final String questionText;
-  final String optionA;
-  final String optionB;
-  final String optionC;
-  final String optionD;
-  final String optionE;
+  final List<String> options;
 
-  Question({
-    required this.questionText,
-    required this.optionA,
-    required this.optionB,
-    required this.optionC,
-    required this.optionD,
-    required this.optionE,
-
-  });
+  Question({required this.questionText, required this.options});
 }
 
 // Questionnaire Screen
@@ -28,60 +16,69 @@ class QuestionnaireScreen extends StatefulWidget {
   State<QuestionnaireScreen> createState() => _QuestionnaireScreenState();
 }
 
-class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
+class _QuestionnaireScreenState extends State<QuestionnaireScreen>
+    with TickerProviderStateMixin {
   int currentQuestionIndex = 0;
-  List<String> selectedAnswers = List.filled(6, '');
+  List<String> selectedAnswers = List.filled(9, '');
+  late AnimationController _completionAnimationController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
 
   final List<Question> questions = [
+    Question(questionText: "Do you like helping peoples?", options: ["1", "2", "3", "4", "5"]),
     Question(
-      questionText: "What is your primary interest in job simulation?",
-      optionA: "Customer Service",
-      optionB: "Technical Skills",
-      optionC: "Leadership Roles",
-      optionD: "Creative Work",
-      optionE: "",
+      questionText: "Do you like arranging or organizing things?",
+      options: ["1", "2", "3", "4", "5"],
+    ),
+    Question(questionText: "Do you enjoy talking to people?", options: ["1", "2", "3", "4", "5"]),
+    Question(
+      questionText: "Do you like making or preparing things?",
+      options: ["1", "2", "3", "4", "5"],
     ),
     Question(
-      questionText: "Comfort with communication",
-      optionA: "1",
-      optionB: "2",
-      optionC: "3",
-      optionD: "4",
-      optionE: "5",
+      questionText: "Can you follow simple instructions?",
+      options: ["Yes", "Sometimes", "Needs help"],
     ),
     Question(
-      questionText: "What type of work environment do you prefer?",
-      optionA: "Fast-paced",
-      optionB: "Structured",
-      optionC: "Collaborative",
-      optionD: "Independent",
-      optionE: "",
+      questionText: "Can You remember daily routines?",
+      options: ["Yes", "Sometimes", "Needs help"],
     ),
     Question(
-      questionText: "Which skill would you like to develop most?",
-      optionA: "Communication",
-      optionB: "Problem Solving",
-      optionC: "Time Management",
-      optionD: "Teamwork",
-      optionE: "",
+      questionText: "Can you work well with others?",
+      options: ["Yes", "Sometimes", "Needs help"],
     ),
     Question(
-      questionText: "How comfortable are you with using technology?",
-      optionA: "Very Comfortable",
-      optionB: "Somewhat Comfortable",
-      optionC: "Learning",
-      optionD: "Prefer Traditional Methods",
-      optionE: "",
+      questionText: "Can you stay focused on a task until it is finished?",
+      options: ["Yes", "Short time", "Needs reminders"],
     ),
     Question(
-      questionText: "What motivates you most in a job?",
-      optionA: "Helping Others",
-      optionB: "Personal Growth",
-      optionC: "Recognition",
-      optionD: "Stable Income",
-      optionE: "",
+      questionText: "Do you like working in a group?",
+      options: ["Yes", "Sometimes", "Prefer alone"],
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _completionAnimationController = AnimationController(
+      duration: Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _completionAnimationController, curve: Curves.elasticOut),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _completionAnimationController, curve: Curves.easeIn),
+    );
+  }
+
+  @override
+  void dispose() {
+    _completionAnimationController.dispose();
+    super.dispose();
+  }
 
   void selectAnswer(String answer) {
     setState(() {
@@ -102,33 +99,117 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
   }
 
   void _showCompletionDialog() {
+    _completionAnimationController.forward();
+
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: Color(0xFFB322E0),
-          title: Text(
-            "Quiz Completed!",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
-          content: Text(
-            "Thank you for completing the questionnaire.",
-            style: TextStyle(color: Colors.white),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Close dialog
-                Navigator.pop(context); // Go back to module selection
-              },
-              child: Text(
-                "OK",
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        return AnimatedBuilder(
+          animation: _completionAnimationController,
+          builder: (context, child) {
+            return ScaleTransition(
+              scale: _scaleAnimation,
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: Dialog(
+                  elevation: 0,
+                  backgroundColor: Colors.transparent,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFFB322E0),
+                          Color(0xFF9b1bcc),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0xFFB322E0).withValues(alpha: 0.4),
+                          blurRadius: 20,
+                          offset: Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    padding: EdgeInsets.all(30),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Animated Checkmark
+                        SizedBox(
+                          height: 120,
+                          width: 120,
+                          child: _buildAnimatedCheckmark(),
+                        ),
+                        SizedBox(height: 30),
+                        Text(
+                          "Quiz Completed!",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 28,
+                            letterSpacing: 1,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: 15),
+                        Text(
+                          "Thank you for completing the questionnaire.",
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            fontSize: 16,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: 30),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              _completionAnimationController.reverse().then((_) {
+                                Navigator.pop(context);
+                                Navigator.pop(context);
+                              });
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(vertical: 15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                            ),
+                            child: Text(
+                              "Continue",
+                              style: TextStyle(
+                                color: Color(0xFFB322E0),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ],
+            );
+          },
         );
       },
+    ).then((_) {
+      _completionAnimationController.reset();
+    });
+  }
+
+  Widget _buildAnimatedCheckmark() {
+    return CustomPaint(
+      painter: AnimatedCheckmarkPainter(
+        progress: _completionAnimationController.value,
+      ),
     );
   }
 
@@ -151,10 +232,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFB322E0),
-              Color(0xFF9b1bcc),
-            ],
+            colors: [Color(0xFFB322E0), Color(0xFF9b1bcc)],
           ),
         ),
         child: SafeArea(
@@ -180,7 +258,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                         height: 8,
                         margin: EdgeInsets.symmetric(horizontal: 20),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.3),
+                          color: Colors.white.withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: FractionallySizedBox(
@@ -213,13 +291,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                     // Left Star
                     Positioned(
                       left: 0,
-                      child: Text(
-                        "✦",
-                        style: TextStyle(
-                          color: Color(0xFFFFD700),
-                          fontSize: 24,
-                        ),
-                      ),
+                      child: Text("✦", style: TextStyle(color: Color(0xFFFFD700), fontSize: 24)),
                     ),
                     // QUIZ Header
                     Container(
@@ -242,36 +314,18 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                     Positioned(
                       right: 10,
                       top: -5,
-                      child: Text(
-                        "✦",
-                        style: TextStyle(
-                          color: Color(0xFFFFD700),
-                          fontSize: 20,
-                        ),
-                      ),
+                      child: Text("✦", style: TextStyle(color: Color(0xFFFFD700), fontSize: 20)),
                     ),
                     Positioned(
                       right: -15,
                       bottom: -5,
-                      child: Text(
-                        "✦",
-                        style: TextStyle(
-                          color: Color(0xFFFFD700),
-                          fontSize: 20,
-                        ),
-                      ),
+                      child: Text("✦", style: TextStyle(color: Color(0xFFFFD700), fontSize: 20)),
                     ),
                     // Question Mark
                     Positioned(
                       right: 20,
                       top: 0,
-                      child: Text(
-                        "?",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                        ),
-                      ),
+                      child: Text("?", style: TextStyle(color: Colors.white, fontSize: 24)),
                     ),
                   ],
                 ),
@@ -281,7 +335,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                   padding: EdgeInsets.all(20),
                   margin: EdgeInsets.symmetric(horizontal: 20),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -295,63 +349,11 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
                   ),
                 ),
                 SizedBox(height: 40),
-                // Options Grid (2x2)
+                // Options Grid
                 Expanded(
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  children: [
-                                    Expanded(
-                                      child: _buildOptionButton(
-                                        label: "A",
-                                        text: currentQuestion.optionA,
-                                        answer: "A",
-                                      ),
-                                    ),
-                                    SizedBox(height: 20),
-                                    Expanded(
-                                      child: _buildOptionButton(
-                                        label: "B",
-                                        text: currentQuestion.optionB,
-                                        answer: "B",
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(width: 20),
-                              Expanded(
-                                child: Column(
-                                  children: [
-                                    Expanded(
-                                      child: _buildOptionButton(
-                                        label: "C",
-                                        text: currentQuestion.optionC,
-                                        answer: "C",
-                                      ),
-                                    ),
-                                    SizedBox(height: 20),
-                                    Expanded(
-                                      child: _buildOptionButton(
-                                        label: "D",
-                                        text: currentQuestion.optionD,
-                                        answer: "D",
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                    child: _buildOptionsGrid(currentQuestion),
                   ),
                 ),
               ],
@@ -364,7 +366,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
 
   Widget _buildOptionButton({required String label, required String text, required String answer}) {
     final isSelected = selectedAnswers[currentQuestionIndex] == answer;
-    
+
     return GestureDetector(
       onTap: () => selectAnswer(answer),
       child: Container(
@@ -372,11 +374,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 8,
-              offset: Offset(0, 4),
-            ),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8, offset: Offset(0, 4)),
           ],
         ),
         child: Stack(
@@ -398,19 +396,13 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
             Positioned(
               left: -8,
               top: -8,
-              child: Text(
-                "✦",
-                style: TextStyle(
-                  color: Color(0xFFFFD700),
-                  fontSize: 20,
-                ),
-              ),
+              child: Text("✦", style: TextStyle(color: Color(0xFFFFD700), fontSize: 20)),
             ),
             if (isSelected)
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Color(0xFFB322E0).withOpacity(0.2),
+                    color: Color(0xFFB322E0).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
                 ),
@@ -420,6 +412,180 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen> {
       ),
     );
   }
+
+  Widget _buildOptionsGrid(Question question) {
+    final optionCount = question.options.length;
+
+    // For 5 options (1-5 rating)
+    if (optionCount == 5) {
+      return Column(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: _buildOptionButton(
+                          label: "A",
+                          text: question.options[0],
+                          answer: question.options[0],
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      Expanded(
+                        child: _buildOptionButton(
+                          label: "B",
+                          text: question.options[1],
+                          answer: question.options[1],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: _buildOptionButton(
+                          label: "C",
+                          text: question.options[2],
+                          answer: question.options[2],
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      Expanded(
+                        child: _buildOptionButton(
+                          label: "D",
+                          text: question.options[3],
+                          answer: question.options[3],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 20),
+          SizedBox(
+            height: 80,
+            child: _buildOptionButton(
+              label: "E",
+              text: question.options[4],
+              answer: question.options[4],
+            ),
+          ),
+        ],
+      );
+    }
+    // For 3 options
+    else {
+      return Column(
+        children: List.generate(optionCount, (index) {
+          final letters = ['A', 'B', 'C'];
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 5),
+              child: _buildOptionButton(
+                label: letters[index],
+                text: question.options[index],
+                answer: question.options[index],
+              ),
+            ),
+          );
+        }),
+      );
+    }
+  }
 }
 
+// Custom painter for animated checkmark
+class AnimatedCheckmarkPainter extends CustomPainter {
+  final double progress;
 
+  AnimatedCheckmarkPainter({required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 6
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke;
+
+    // Draw circle background
+    final circlePaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.15)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(
+      Offset(size.width / 2, size.height / 2),
+      size.width / 2,
+      circlePaint,
+    );
+
+    // Draw circle border
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 5
+      ..style = PaintingStyle.stroke;
+
+    final circlePath = Path();
+    circlePath.addArc(
+      Rect.fromCircle(
+        center: Offset(size.width / 2, size.height / 2),
+        radius: size.width / 2 - 5,
+      ),
+      -90 * 3.14159 / 180,
+      progress * 2 * 3.14159,
+    );
+
+    canvas.drawPath(circlePath, borderPaint);
+
+    // Draw checkmark
+    if (progress > 0.3) {
+      final checkmarkProgress = (progress - 0.3) / 0.7;
+      final path = Path();
+
+      // Left part of checkmark
+      final startX = size.width * 0.35;
+      final startY = size.height * 0.55;
+      final midX = size.width * 0.45;
+      final midY = size.height * 0.65;
+
+      path.moveTo(startX, startY);
+      path.lineTo(
+        startX + (midX - startX) * checkmarkProgress,
+        startY + (midY - startY) * checkmarkProgress,
+      );
+
+      canvas.drawPath(path, paint);
+
+      // Right part of checkmark
+      if (checkmarkProgress > 0.5) {
+        final rightProgress = (checkmarkProgress - 0.5) / 0.5;
+        final path2 = Path();
+
+        final endX = size.width * 0.65;
+        final endY = size.height * 0.35;
+
+        path2.moveTo(midX, midY);
+        path2.lineTo(
+          midX + (endX - midX) * rightProgress,
+          midY + (endY - midY) * rightProgress,
+        );
+
+        canvas.drawPath(path2, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(AnimatedCheckmarkPainter oldDelegate) {
+    return oldDelegate.progress != progress;
+  }
+}
