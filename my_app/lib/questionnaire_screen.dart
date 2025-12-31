@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'game_menu_new.dart';
 
 // Question model
 class Question {
@@ -170,8 +171,9 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
                           child: ElevatedButton(
                             onPressed: () {
                               _completionAnimationController.reverse().then((_) {
-                                Navigator.pop(context);
-                                Navigator.pop(context);
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(builder: (context) => GameMenuNew()),
+                                );
                               });
                             },
                             style: ElevatedButton.styleFrom(

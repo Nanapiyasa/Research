@@ -60,7 +60,7 @@ class StudentDashboard extends StatefulWidget {
 class _StudentDashboardState extends State<StudentDashboard>
     with TickerProviderStateMixin {
   // Background image path - change this to your background image file name
-  static const String backgroundImagePath = "assets/background.jpeg";
+  static const String backgroundImagePath = "assets/background.jpg";
 
   late AnimationController _bannerAnimationController;
   late Animation<double> _bannerScaleAnimation;
