@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'questionnaire_screen.dart';
+import 'auth_service.dart';
 
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  // Set orientation to portrait only
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -11,256 +20,492 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Down Syndrome Learning App',
-      home: const GameMenuScreen(),
+      title: 'Student Dashboard',
+      theme: ThemeData.dark(),
+      home: StudentDashboard(),
+      routes: {
+        '/student/job-role-simulation': (_) => QuestionnaireScreen(),
+        // TODO: Add navigation routes like:
+        // '/student/life-skills': (_) => LifeSkillsScreen(),
+      },
     );
   }
 }
 
-class GameMenuScreen extends StatelessWidget {
-  const GameMenuScreen({super.key});
+class Module {
+  final String key;
+  final String title;
+  final String description;
+  final Color headerColor;
+  final Color headerColorLight;
+  final String iconPath;
+
+  Module({
+    required this.key,
+    required this.title,
+    required this.description,
+    required this.headerColor,
+    required this.headerColorLight,
+    required this.iconPath,
+  });
+}
+
+class StudentDashboard extends StatefulWidget {
+  const StudentDashboard({super.key});
+
+  @override
+  State<StudentDashboard> createState() => _StudentDashboardState();
+}
+
+class _StudentDashboardState extends State<StudentDashboard>
+    with TickerProviderStateMixin {
+  // Background image path - change this to your background image file name
+  static const String backgroundImagePath = "assets/background.jpeg";
+
+  late AnimationController _bannerAnimationController;
+  late Animation<double> _bannerScaleAnimation;
+  
+  // Auth service instance
+  final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    _bannerAnimationController = AnimationController(
+      duration: Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _bannerScaleAnimation =
+        Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _bannerAnimationController, curve: Curves.elasticOut),
+    );
+
+    // Start the pop animation loop
+    _startBannerAnimation();
+  }
+
+  void _startBannerAnimation() {
+    _bannerAnimationController.forward().then((_) {
+      Future.delayed(Duration(milliseconds: 1500), () {
+        if (mounted) {
+          _bannerAnimationController.reverse().then((_) {
+            Future.delayed(Duration(milliseconds: 500), () {
+              if (mounted) {
+                _startBannerAnimation();
+              }
+            });
+          });
+        }
+      });
+    });
+  }
+
+  Future<void> _handleLoginLogout() async {
+    if (_authService.isLoggedIn) {
+      // Logout
+      _authService.logout();
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Logged out successfully!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else {
+      // Login with QR code
+      final result = await _authService.scanAndLogin();
+      if (result['success'] as bool) {
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] as String),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] as String),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _bannerAnimationController.dispose();
+    super.dispose();
+  }
+
+  final List<Module> modules = [
+    Module(
+      key: "life-skills",
+      title: "LIFE SKILLS",
+      description: "Practice daily living and decision-making skills.",
+      headerColor: Color(0xFF059669),
+      headerColorLight: Color(0xFF10b981),
+      iconPath: "assets/life-skills-icon.png",
+    ),
+    Module(
+      key: "job-role-simulation",
+      title: "JOB SIMULATION",
+      description: "Experience real-world job tasks safely.",
+      headerColor: Color(0xFF2563EB),
+      headerColorLight: Color(0xFF3b82f6),
+      iconPath: "assets/job-simulation-icon.png",
+    ),
+    Module(
+      key: "communication-social",
+      title: "SOCIAL SKILLS",
+      description: "Improve conversations & teamwork.",
+      headerColor: Color(0xFF7C3AED),
+      headerColorLight: Color(0xFF8b5cf6),
+      iconPath: "assets/social-skills-icon.png",
+    ),
+    Module(
+      key: "behaviour-emotional",
+      title: "EMOTIONAL CONTROL",
+      description: "Learn healthy emotional regulation.",
+      headerColor: Color(0xFFEA580C),
+      headerColorLight: Color(0xFFF97316),
+      iconPath: "assets/emotional-control-icon.png",
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final screenWidth = screenSize.width;
+    
+    final padding = screenWidth * 0.03;
+    final spacing = screenWidth * 0.02;
+
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF87CEEB),
-              Color(0xFFA8D8F0),
-              Color(0xFFC8E6F5),
-              Color(0xFFF4D8B8),
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-
-        child: Stack(
-          children: [
-
-            // ⭐ Background Decorations
-            Positioned(
-              top: 20,
-              left: 16,
-              child: Triangle(color: Color(0xFFFFB347), size: 60, angle: 15),
-            ),
-            Positioned(
-              top: 150,
-              right: 24,
-              child: Triangle(color: Color(0xFFB19CD9), size: 50, angle: -20),
-            ),
-            Positioned(
-              bottom: 120,
-              left: 20,
-              child: Triangle(color: Color(0xFF77DD77), size: 70, angle: 25),
-            ),
-
-            // Title
-            Align(
-              alignment: Alignment.topCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 60),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      body: Stack(
+        children: [
+          // Background Image Layer with fallback gradient
+          Positioned.fill(
+            child: Image.asset(
+              backgroundImagePath,
+              fit: BoxFit.cover,
+              filterQuality: FilterQuality.high,
+              errorBuilder: (context, error, stackTrace) {
+                // Fallback to gradient if image doesn't exist
+                return Container(
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF5B9EFF), Color(0xFF4A8DE8)],
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.blueGrey.shade900,
+                        Colors.black,
+                        Colors.grey.shade900,
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black45,
-                        blurRadius: 12,
-                        offset: Offset(0, 6),
-                      )
-                    ],
                   ),
-                  child: const Text(
-                    "Game Menu",
-                    style: TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFFFFE135),
-                      shadows: [
-                        Shadow(
-                          color: Colors.black38,
-                          offset: Offset(3, 3),
-                          blurRadius: 6,
-                        )
+                );
+              },
+            ),
+          ),
+          // Content Layer
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(padding),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.3),
+            ),
+            child: SafeArea(
+              child: CustomScrollView(
+                slivers: [
+                  // User Info Bar
+                  SliverToBoxAdapter(
+                    child: Container(
+                      padding: EdgeInsets.all(16),
+                      margin: EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.amber.shade800, Colors.amber.shade900],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.amber.shade700, width: 3),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Welcome, ${_authService.currentUserName ?? 'Guest'}!",
+                                style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white),
+                              ),
+                              SizedBox(height: 5),
+                              Text(
+                                _authService.isLoggedIn
+                                    ? "Status: Logged In"
+                                    : "Status: Not Logged In",
+                                style: TextStyle(
+                                  color: _authService.isLoggedIn
+                                      ? Colors.green.shade200
+                                      : Colors.red.shade200,
+                                  fontSize: 14,
+                                ),
+                              )
+                            ],
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: _handleLoginLogout,
+                            icon: Icon(
+                              _authService.isLoggedIn ? Icons.logout : Icons.qr_code,
+                              size: 18,
+                            ),
+                            label: Text(
+                              _authService.isLoggedIn ? "Logout" : "Login with QR",
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _authService.isLoggedIn
+                                  ? Colors.red.shade700
+                                  : Colors.green.shade700,
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              shape: StadiumBorder(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // CHOOSE YOUR QUEST Title
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        ScaleTransition(
+                          scale: _bannerScaleAnimation,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                            margin: EdgeInsets.only(bottom: 20),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Colors.yellow.shade400, Colors.amber.shade500],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.yellow.shade600, width: 3),
+                            ),
+                            child: Text(
+                              "CHOOSE YOUR QUEST",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 10),
                       ],
                     ),
                   ),
-                ),
-              ),
-            ),
-
-            // ⭐ BUTTON GRID
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 150),
-                child: SizedBox(
-                  width: 380,
-                  child: GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    mainAxisSpacing: 25,
-                    crossAxisSpacing: 25,
-
-                    children: [
-                      MenuButton(
-                        title: "Cognitive\nSkills",
-                        color1: Color(0xFFFF9E3D),
-                        color2: Color(0xFFFF7B25),
-                        icon: Icons.extension,
-                        onPressed: () => debugPrint("Cognitive Skills"),
+                  // Module Grid
+                  SliverPadding(
+                    padding: EdgeInsets.symmetric(horizontal: spacing),
+                    sliver: SliverGrid(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: spacing * 2,
+                        mainAxisSpacing: spacing * 2,
+                        childAspectRatio: 0.85,
                       ),
-                      MenuButton(
-                        title: "Literacy\nSkills",
-                        color1: Color(0xFFB565E8),
-                        color2: Color(0xFF9B4DD3),
-                        icon: Icons.book,
-                        onPressed: () => debugPrint("Literacy Skills"),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          return GamePanelCard(
+                            module: modules[index],
+                            onTap: () {
+                              Navigator.pushNamed(context, "/student/${modules[index].key}");
+                            },
+                            screenWidth: screenWidth,
+                            isVertical: false,
+                          );
+                        },
+                        childCount: modules.length,
                       ),
-                      MenuButton(
-                        title: "Numeracy\nSkills",
-                        color1: Color(0xFF6FCF7C),
-                        color2: Color(0xFF4CAF50),
-                        icon: Icons.calculate,
-                        onPressed: () => debugPrint("Numeracy Skills"),
-                      ),
-                      MenuButton(
-                        title: "Daily Life\nSkills",
-                        color1: Color(0xFFFF5C8D),
-                        color2: Color(0xFFF44369),
-                        icon: Icons.favorite,
-                        onPressed: () => debugPrint("Daily Life Skills"),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-///-----------------------------------------------------------
-/// ⭐ MENU BUTTON COMPONENT
-///-----------------------------------------------------------
-class MenuButton extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final Color color1;
-  final Color color2;
-  final VoidCallback onPressed;
-
-  const MenuButton({
-    super.key,
-    required this.title,
-    required this.icon,
-    required this.color1,
-    required this.color2,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [color1, color2],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: color2.withOpacity(0.6),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            )
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 60, color: Colors.white),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 20,
-                height: 1.2,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                shadows: [
-                  Shadow(color: Colors.black38, offset: Offset(2, 3), blurRadius: 5)
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-///-----------------------------------------------------------
-/// ⭐ TRIANGLE DECORATION WIDGET
-///-----------------------------------------------------------
-class Triangle extends StatelessWidget {
-  final Color color;
-  final double size;
-  final double angle;
 
-  const Triangle({
-    super.key,
-    required this.color,
-    required this.size,
-    required this.angle,
+class GamePanelCard extends StatelessWidget {
+  final Module module;
+  final VoidCallback onTap;
+  final double screenWidth;
+  final bool isVertical;
+
+  const GamePanelCard({super.key, 
+    required this.module,
+    required this.onTap,
+    required this.screenWidth,
+    this.isVertical = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Transform.rotate(
-      angle: angle * 3.1415 / 180,
-      child: CustomPaint(
-        size: Size(size, size),
-        painter: TrianglePainter(color),
+    // Responsive sizing based on screen width
+    final iconSize = isVertical ? screenWidth * 0.12 : screenWidth * 0.08;
+    final padding = screenWidth * 0.03;
+    final borderRadius = screenWidth * 0.03;
+    final titleFontSize = isVertical ? screenWidth * 0.05 : screenWidth * 0.022;
+    final descriptionFontSize = isVertical ? screenWidth * 0.04 : screenWidth * 0.015;
+    
+    return InkWell(
+      borderRadius: BorderRadius.circular(borderRadius),
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [module.headerColor, module.headerColorLight],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(borderRadius),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.all(padding),
+        child: isVertical
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Image with error handling
+                  Image.asset(
+                    module.iconPath,
+                    height: iconSize,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: iconSize,
+                        width: iconSize,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.image_not_supported,
+                          color: Colors.white70,
+                          size: iconSize * 0.6,
+                        ),
+                      );
+                    },
+                  ),
+                  SizedBox(width: padding),
+                  // Text content
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          module.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: titleFontSize,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        SizedBox(height: padding * 0.4),
+                        Text(
+                          module.description,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: descriptionFontSize,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: padding * 0.5),
+                  Icon(Icons.arrow_forward, color: Colors.white, size: iconSize * 0.8),
+                ],
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Image with error handling
+                  Image.asset(
+                    module.iconPath,
+                    height: iconSize,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: iconSize,
+                        width: iconSize,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.image_not_supported,
+                          color: Colors.white70,
+                          size: iconSize * 0.6,
+                        ),
+                      );
+                    },
+                  ),
+                  SizedBox(height: padding * 0.6),
+                  Flexible(
+                    child: Text(
+                      module.title,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: titleFontSize,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: padding * 0.5),
+                  Flexible(
+                    child: Text(
+                      module.description,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: descriptionFontSize,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }
-}
-
-class TrianglePainter extends CustomPainter {
-  final Color color;
-  TrianglePainter(this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color;
-
-    final path = Path();
-    path.moveTo(size.width / 2, 0);
-    path.lineTo(0, size.height);
-    path.lineTo(size.width, size.height);
-    path.close();
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
