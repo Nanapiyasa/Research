@@ -246,3 +246,5 @@ if __name__ == "__main__":
     print(f"Final data shape: {data.shape}")
     print(f"\nColumn summary:")
     print(data.describe())
+
+    
