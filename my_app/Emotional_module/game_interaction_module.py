@@ -357,6 +357,9 @@ if __name__ == "__main__":
     df = tracker.get_session_dataframe()
     print("\n=== Session Summary ===")
     print(df[['user_id', 'difficulty_level', 'final_score', 'accuracy', 'mistakes']])
+
+
+    
     
 
     
