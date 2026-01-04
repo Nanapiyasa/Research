@@ -1,0 +1,394 @@
+[
+
+
+{
+  "skill": "greeting",
+  "responses": {
+    "very mild": [
+      {
+        "question": "hi",
+        "answers": ["Hi 😊", "Hello!", "Hey there!"]
+      },
+      {
+        "question": "hello",
+        "answers": ["Hello! How can I help you?", "Hi! Nice to meet you"]
+      }
+    ],
+    "mild": [
+      {
+        "question": "hi",
+        "answers": ["Hello! How can I help you today?"]
+      }
+    ],
+    "moderate": [
+      {
+        "question": "hi",
+        "answers": ["Hi there! Ready to play and learn together?"]
+      }
+    ],
+    "severe": [
+      {
+        "question": "hi",
+        "answers": ["Hello!"]
+      }
+    ]
+  }
+},
+
+
+
+  {
+    "skill": "Respectful Greetings",
+    "responses": {
+      "low": [
+        {
+          "question": "How do I greet a classmate in the morning?",
+          "answers": [
+            "Try saying 'Good morning!' with a smile.",
+            "Start with a friendly 'Hello!'",
+            "A simple wave and 'Hi!' works too."
+          ]
+        },
+        {
+          "question": "How do I greet a teacher?",
+          "answers": [
+            "Say 'Good morning, teacher!' politely.",
+            "Smile and greet with 'Hello!'",
+            "Always show respect in your greeting."
+          ]
+        }
+      ],
+      "medium": [
+        {
+          "question": "How to greet a friend you haven't seen for a while?",
+          "answers": [
+            "Say 'Hi! How have you been?'",
+            "Add a friendly gesture, like a wave or thumbs-up.",
+            "Include a warm smile with your greeting."
+          ]
+        },
+        {
+          "question": "How to greet someone formally?",
+          "answers": [
+            "Use 'Hello, it's nice to meet you.'",
+            "Maintain eye contact while greeting politely.",
+            "Add your name and a handshake if appropriate."
+          ]
+        }
+      ],
+      "high": [
+        {
+          "question": "How to greet confidently in different situations?",
+          "answers": [
+            "Excellent! You greet respectfully and appropriately.",
+            "Combine words, tone, and gestures for a strong impression.",
+            "People feel welcomed when you greet them politely."
+          ]
+        },
+        {
+          "question": "How to make greetings natural and friendly?",
+          "answers": [
+            "Always smile and use friendly words.",
+            "Adapt greetings to the context and person.",
+            "Your greetings leave a positive impression."
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "skill": "Gratitude",
+    "responses": {
+      "low": [
+        {
+          "question": "How do I say thanks to someone who helped me?",
+          "answers": [
+            "Try saying 'Thank you!'",
+            "Even a small smile with 'Thanks!' shows gratitude.",
+            "Say 'Thanks for helping me!' politely."
+          ]
+        },
+        {
+          "question": "How do I show appreciation for a gift?",
+          "answers": [
+            "Say 'Thank you, I like it!'",
+            "Write a small note to express thanks.",
+            "Smile and say 'I really appreciate it.'"
+          ]
+        }
+      ],
+      "medium": [
+        {
+          "question": "How to show gratitude for extra help?",
+          "answers": [
+            "Say 'Thanks for helping me with my homework.'",
+            "Explain why you are thankful.",
+            "Combine words with a smile or gesture."
+          ]
+        },
+        {
+          "question": "How to express gratitude in different situations?",
+          "answers": [
+            "Practice saying thanks in casual and formal settings.",
+            "Try: 'I really appreciate your support.'",
+            "Notice acts of kindness and acknowledge them verbally."
+          ]
+        }
+      ],
+      "high": [
+        {
+          "question": "How to show gratitude naturally and consistently?",
+          "answers": [
+            "Excellent! You express thanks in words and actions.",
+            "Combine verbal thanks with gestures or small notes.",
+            "Your gratitude positively affects others around you."
+          ]
+        },
+        {
+          "question": "How to inspire gratitude in others?",
+          "answers": [
+            "Express heartfelt thanks and recognize others' efforts.",
+            "Encourage others to feel appreciated by showing it yourself.",
+            "Gratitude is reflected in your daily interactions."
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "skill": "Apologizing",
+    "responses": {
+      "low": [
+        {
+          "question": "I accidentally bumped into someone. What should I say?",
+          "answers": [
+            "Say 'Sorry!' politely.",
+            "Even a simple 'Oops, sorry!' works.",
+            "Make sure to show you didn’t mean harm."
+          ]
+        },
+        {
+          "question": "I forgot to return a borrowed item. How do I apologize?",
+          "answers": [
+            "Say 'I’m sorry for forgetting. Here it is.'",
+            "Apologize sincerely and promptly.",
+            "A simple 'Sorry!' along with returning it shows respect."
+          ]
+        }
+      ],
+      "medium": [
+        {
+          "question": "How to apologize properly to a friend?",
+          "answers": [
+            "Explain why you are sorry: 'I’m sorry I upset you.'",
+            "Use polite tone and words.",
+            "Offer to make it right if possible."
+          ]
+        },
+        {
+          "question": "How to apologize in class?",
+          "answers": [
+            "Say 'I apologize for interrupting.'",
+            "Show you understand the mistake.",
+            "Maintain respectful body language."
+          ]
+        }
+      ],
+      "high": [
+        {
+          "question": "How to apologize sincerely in serious situations?",
+          "answers": [
+            "Apologize clearly and express understanding of the impact.",
+            "Combine words, tone, and gestures for sincerity.",
+            "Take responsibility without excuses."
+          ]
+        },
+        {
+          "question": "How to apologize and rebuild trust?",
+          "answers": [
+            "Follow up your apology with actions.",
+            "Show consistency in behavior after apologizing.",
+            "Make sure the person feels acknowledged and respected."
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "skill": "Asking Permission",
+    "responses": {
+      "low": [
+        {
+          "question": "Can I open the window?",
+          "answers": [
+            "Say 'May I open the window, please?'",
+            "Remember to use 'please'.",
+            "Be polite before acting."
+          ]
+        },
+        {
+          "question": "Can I borrow your pen?",
+          "answers": [
+            "Ask politely: 'May I borrow your pen, please?'",
+            "Say 'please' and thank them after borrowing.",
+            "Be courteous in your request."
+          ]
+        }
+      ],
+      "medium": [
+        {
+          "question": "How to ask permission in class?",
+          "answers": [
+            "Use polite phrases like 'May I...?' or 'Could I...?'",
+            "Smile and ask clearly.",
+            "Wait for a response before acting."
+          ]
+        },
+        {
+          "question": "Asking permission at home or with friends?",
+          "answers": [
+            "Say: 'Is it okay if I...? Please?'",
+            "Be polite and clear about your request.",
+            "Thank them for considering your request."
+          ]
+        }
+      ],
+      "high": [
+        {
+          "question": "How to ask permission confidently?",
+          "answers": [
+            "Ask politely but confidently: 'May I participate?'",
+            "Combine polite words with tone and gestures.",
+            "Your requests are considerate and respectful."
+          ]
+        },
+        {
+          "question": "How to ask permission in tricky situations?",
+          "answers": [
+            "Explain clearly why you need permission.",
+            "Use polite language and show appreciation.",
+            "Maintain confidence while staying respectful."
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "skill": "Introducing Yourself",
+    "responses": {
+      "low": [
+        {
+          "question": "How do I say hi to a new classmate?",
+          "answers": [
+            "Try saying 'Hi, I’m [Name].' with a smile.",
+            "Say 'Hello! My name is [Name].'",
+            "Introduce yourself politely and clearly."
+          ]
+        },
+        {
+          "question": "How do I introduce myself at a new group?",
+          "answers": [
+            "Say 'Hi everyone, I’m [Name].'",
+            "Smile and give a friendly wave.",
+            "Keep it simple and polite: 'Hello, my name is [Name].'"
+          ]
+        }
+      ],
+      "medium": [
+        {
+          "question": "How to introduce myself in a friendly way?",
+          "answers": [
+            "Include a small detail: 'Hi, I’m [Name], I like drawing.'",
+            "Ask their name: 'I’m [Name], what’s your name?'",
+            "Try: 'Hello, I’m [Name]. What do you like doing?'"
+          ]
+        },
+        {
+          "question": "How to make a good first impression?",
+          "answers": [
+            "Add a compliment or friendly comment.",
+            "Smile and make eye contact.",
+            "Speak clearly and show interest in others."
+          ]
+        }
+      ],
+      "high": [
+        {
+          "question": "How do I introduce myself confidently?",
+          "answers": [
+            "Introduce yourself clearly and confidently.",
+            "Combine words, tone, and gestures.",
+            "People remember you because you are engaging and polite."
+          ]
+        },
+        {
+          "question": "How to stand out while introducing yourself?",
+          "answers": [
+            "Include your name, interests, and a friendly gesture.",
+            "Keep a confident tone and smile naturally.",
+            "Engage the listener with a polite question about them."
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "skill": "Offering Help",
+    "responses": {
+      "low": [
+        {
+          "question": "How to offer help to a classmate?",
+          "answers": [
+            "Say 'Do you want some help?' politely.",
+            "Offer to assist with a smile.",
+            "Be polite and approachable."
+          ]
+        },
+        {
+          "question": "How to offer help to a friend?",
+          "answers": [
+            "Say 'Can I help you with that?'",
+            "Offer specific help, like 'Do you want me to carry this?'",
+            "Make sure your offer is kind and genuine."
+          ]
+        }
+      ],
+      "medium": [
+        {
+          "question": "How to offer help in a group activity?",
+          "answers": [
+            "Say 'I can help if you want.'",
+            "Be clear about what you can do.",
+            "Encourage others politely."
+          ]
+        },
+        {
+          "question": "How to show helpfulness consistently?",
+          "answers": [
+            "Offer help without expecting anything in return.",
+            "Notice when someone needs assistance and step in politely.",
+            "Combine words and gestures to show support."
+          ]
+        }
+      ],
+      "high": [
+        {
+          "question": "How to be naturally helpful?",
+          "answers": [
+            "You offer help proactively and sincerely.",
+            "Combine polite words with friendly gestures.",
+            "People appreciate your consistent willingness to assist."
+          ]
+        },
+        {
+          "question": "How to inspire others to help?",
+          "answers": [
+            "Lead by example, showing thoughtful assistance.",
+            "Encourage collaboration and teamwork.",
+            "Help in a way that respects others’ preferences."
+          ]
+        }
+      ]
+    }
+  }
+]
