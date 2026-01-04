@@ -126,3 +126,7 @@ def train_emotion_detector():
 
 if __name__ == '__main__':
     train_emotion_detector()
+
+#jk
+
+    
