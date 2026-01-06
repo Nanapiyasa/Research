@@ -24,6 +24,9 @@ Nanapiyasa is an innovative educational platform that leverages mobile technolog
 
 ## Architecture
 
+<img width="10870" height="8808" alt="AWS VPC Multi-Tier-2026-01-06-113434" src="https://github.com/user-attachments/assets/32a004d9-1e6c-4d2a-bb7d-f554a1ee434a" />
+
+
 ### Technology Stack
 - **Framework**: Flutter 3.7.2+
 - **Language**: Dart
