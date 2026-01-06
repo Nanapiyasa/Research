@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'Vocational/chefLv01.dart';
 
 class GameMenuNew extends StatefulWidget {
   final Map<String, dynamic>? questionnaireResults;
+  final String? predictedModule;
 
-  const GameMenuNew({super.key, this.questionnaireResults});
+  const GameMenuNew({super.key, this.questionnaireResults, this.predictedModule});
 
   @override
   State<GameMenuNew> createState() => _GameMenuNewState();
@@ -36,6 +38,38 @@ class _GameMenuNewState extends State<GameMenuNew> {
       progress: 0.0,
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _showRecommendationIfNeeded();
+  }
+
+  void _showRecommendationIfNeeded() {
+    if (widget.predictedModule != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showRecommendationDialog(widget.predictedModule!);
+      });
+    }
+  }
+
+  void _showRecommendationDialog(String recommendedModule) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('🎯 Recommended Module'),
+          content: Text('Based on your questionnaire, we recommend starting with the $recommendedModule module!'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +166,14 @@ class _GameMenuNewState extends State<GameMenuNew> {
   Widget _buildGameTile(GameTile game) {
     return GestureDetector(
       onTap: () {
-        _showGameDialog(game);
+        if (game.title == 'Chef') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => KitchenLearningGame()),
+          );
+        } else {
+          _showGameDialog(game);
+        }
       },
       child: Container(
         decoration: BoxDecoration(
