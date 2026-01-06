@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'game_menu_new.dart';
+import 'model_service.dart';
 
 // Question model
 class Question {
@@ -98,6 +100,29 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
     });
   }
 
+  List<int> _calculateScores() {
+    List<int> scores = [];
+    
+    for (int i = 0; i < selectedAnswers.length; i++) {
+      String answer = selectedAnswers[i];
+      
+      // Convert answers to numeric scores
+      if (answer == "1" || answer == "2" || answer == "3" || answer == "4" || answer == "5") {
+        scores.add(int.parse(answer));
+      } else if (answer == "Yes") {
+        scores.add(5);
+      } else if (answer == "Sometimes") {
+        scores.add(3);
+      } else if (answer == "Needs help") {
+        scores.add(1);
+      } else {
+        scores.add(0); // Default for unanswered
+      }
+    }
+    
+    return scores;
+  }
+
   void _showCompletionDialog() {
     _completionAnimationController.forward();
 
@@ -168,11 +193,32 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () {
-                              _completionAnimationController.reverse().then((_) {
-                                Navigator.pop(context);
-                                Navigator.pop(context);
-                              });
+                            onPressed: () async {
+                              try {
+                                // Calculate scores from questionnaire
+                                List<int> scores = _calculateScores();
+                                
+                                // Get model prediction with scores
+                                var result = await VocationalModelService.instance.predictModuleWithScores(scores);
+                                String predictedModule = result['predictedModule'];
+                                double confidence = result['confidence'];
+                                Map<String, double> allScores = result['allScores'];
+                                
+                                print('Predicted module: $predictedModule');
+                                print('Confidence: ${(confidence * 100).toStringAsFixed(1)}%');
+                                print('All scores: $allScores');
+                                
+                                // Show results dialog
+                                _showResultsDialog(context, predictedModule, confidence, allScores);
+                              } catch (e) {
+                                print('Error predicting module: $e');
+                                // Fallback to regular navigation if model fails
+                                _completionAnimationController.reverse().then((_) {
+                                  Navigator.of(context).pushReplacement(
+                                    MaterialPageRoute(builder: (context) => GameMenuNew()),
+                                  );
+                                });
+                              }
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
@@ -500,9 +546,147 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
       );
     }
   }
+
+  void _resetQuestionnaire() {
+    setState(() {
+      currentQuestionIndex = 0;
+      selectedAnswers = List.filled(9, '');
+    });
+    _completionAnimationController.reset();
+  }
+
+  void _showResultsDialog(BuildContext context, String predictedModule, double confidence, Map<String, double> allScores) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '🎯 Assessment Results',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFB322E0),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 20),
+                Text(
+                  'Recommended Path: ${predictedModule.toUpperCase()}',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'Confidence: ${(confidence * 100).toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 20),
+                Text(
+                  'All Module Scores:',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                SizedBox(height: 10),
+                ...allScores.entries.map((entry) => Padding(
+                  padding: EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        entry.key.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      Text(
+                        '${(entry.value * 100).toStringAsFixed(1)}%',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: entry.key == predictedModule ? Color(0xFFB322E0) : Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                )).toList(),
+                SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        print('Retake Test button pressed');
+                        Navigator.of(context).pop();
+                        _resetQuestionnaire();
+                        print('Questionnaire reset completed');
+                      },
+                      child: Text(
+                        'Retake Test',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        print('Continue button pressed');
+                        print('Navigating to GameMenuNew with module: $predictedModule');
+                        Navigator.of(context).pop();
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(builder: (context) => GameMenuNew(predictedModule: predictedModule)),
+                        );
+                        print('Navigation to GameMenuNew completed');
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFFB322E0),
+                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                      ),
+                      child: Text(
+                        'Continue',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
-// Custom painter for animated checkmark
 class AnimatedCheckmarkPainter extends CustomPainter {
   final double progress;
 

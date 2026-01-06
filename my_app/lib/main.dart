@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'questionnaire_screen.dart';
 import 'auth_service.dart';
+import 'Vocational/chefLv01.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +26,7 @@ class MyApp extends StatelessWidget {
       home: StudentDashboard(),
       routes: {
         '/student/job-role-simulation': (_) => QuestionnaireScreen(),
+        '/student/chef-level-01': (_) => KitchenLearningGame(),
         // TODO: Add navigation routes like:
         // '/student/life-skills': (_) => LifeSkillsScreen(),
       },
@@ -60,7 +62,7 @@ class StudentDashboard extends StatefulWidget {
 class _StudentDashboardState extends State<StudentDashboard>
     with TickerProviderStateMixin {
   // Background image path - change this to your background image file name
-  static const String backgroundImagePath = "assets/background.jpeg";
+  static const String backgroundImagePath = "assets/background.jpg";
 
   late AnimationController _bannerAnimationController;
   late Animation<double> _bannerScaleAnimation;
