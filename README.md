@@ -6,7 +6,7 @@ A comprehensive Flutter-based mobile learning application designed specifically 
 
 Nanapiyasa is an innovative educational platform that leverages mobile technology to provide engaging, accessible learning experiences for students with Down Syndrome. The app combines gamification, text-to-speech guidance, and visual learning techniques to create an inclusive educational environment.
 
-This project develops an AI-powered inclusive education platform for students with Down syndrome in Sri Lanka. It combines a gamified mobile assessment app with IoT heart rate monitoring and ML analysis to determine functional levels and provide personalized recommendations. A real-time teacher dashboard offers visual progress tracking and early alerts for attention or fatigue issues. The vocational training module uses questionnaire-based ML insights to suggest suitable roles (Chef Assistant, Retail Assistant, Cleaning Assistant), while the communication and social skills module delivers multimodal learning with an adaptive ML role-play chatbot to build confidence in greetings, emotions, and conversations — all designed to support independence through ethical, non-invasive, and human-centered technology.
+This project develops an AI-powered inclusive education platform for students with Down syndrome in Sri Lanka. It combines a gamified mobile assessment app with IoT heart rate monitoring and ML analysis to determine functional levels and provide personalized recommendations. A real-time teacher dashboard offers visual progress tracking and early alerts for attention or fatigue issues. The vocational training module uses questionnaire-based ML insights to suggest suitable roles (Chef Assistant, Retail Assistant, Cleaning Assistant), while the communication and social skills module delivers multimodal learning with an adaptive ML role-play chatbot to build confidence in greetings, emotions, and conversations all designed to support independence through ethical, non-invasive, and human-centered technology.
 
 ## Key Features
 
@@ -93,33 +93,6 @@ my_app/
 
 #### Web
 - Run: `flutter run -d web`
-
-## App Modules
-
-### 1. Kitchen Learning Game
-- **Objective**: Teach cooking skills through interactive simulations
-- **Features**: Drag-and-drop ingredient placement, step-by-step instructions
-- **Technology**: Custom Flutter widgets with gesture recognition
-
-### 2. Vocational Training
-- **Objective**: Prepare students for workplace environments
-- **Features**: Job role simulations, task completion tracking
-- **Technology**: Scenario-based learning with progress monitoring
-
-### 3. Life Skills Development
-- **Objective**: Develop essential daily living skills
-- **Features**: Interactive tutorials, practice scenarios
-- **Technology**: Visual learning with audio reinforcement
-
-### 4. Social Skills Enhancement
-- **Objective**: Improve social interaction abilities
-- **Features**: Social scenario simulations, emotion recognition
-- **Technology**: Role-playing exercises with feedback
-
-### 5. Emotional Control Activities
-- **Objective**: Teach emotional regulation techniques
-- **Features**: Calming exercises, emotion identification
-- **Technology**: Guided activities with visual and audio cues
 
 ## Machine Learning Integration
 
