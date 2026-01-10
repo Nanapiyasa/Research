@@ -1,6 +1,6 @@
 # Nanapiyasa - Mobile Learning App for Down Syndrome Students
 
-A comprehensive Flutter-based mobile learning application designed specifically for Down Syndrome students, featuring interactive educational modules, vocational training, and skill development activities.
+A comprehensive Flutter-based mobile learning application designed specifically for Down Syndrome students, featuring interactive educational modules, vocational training, and skill development activities with real-time progress tracking.
 
 ## Project Overview
 
