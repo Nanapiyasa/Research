@@ -6,6 +6,8 @@ A comprehensive Flutter-based mobile learning application designed specifically 
 
 Nanapiyasa is an innovative educational platform that leverages mobile technology to provide engaging, accessible learning experiences for students with Down Syndrome. The app combines gamification, text-to-speech guidance, and visual learning techniques to create an inclusive educational environment.
 
+This project develops an AI-powered inclusive education platform for students with Down syndrome in Sri Lanka. It combines a gamified mobile assessment app with IoT heart rate monitoring and ML analysis to determine functional levels and provide personalized recommendations. A real-time teacher dashboard offers visual progress tracking and early alerts for attention or fatigue issues. The vocational training module uses questionnaire-based ML insights to suggest suitable roles (Chef Assistant, Retail Assistant, Cleaning Assistant), while the communication and social skills module delivers multimodal learning with an adaptive ML role-play chatbot to build confidence in greetings, emotions, and conversations — all designed to support independence through ethical, non-invasive, and human-centered technology.
+
 ## Key Features
 
 ### Interactive Learning Modules
