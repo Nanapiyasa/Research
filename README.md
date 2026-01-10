@@ -15,12 +15,14 @@ This project develops an AI-powered inclusive education platform for students wi
 - **Vocational Training**: Job role simulations and skill development
 - **Life Skills Development**: Practical daily living skills training
 - **Social Skills Enhancement**: Interactive social scenario learning
+- **Cognitive Skills Game**: Interactive activities to improve memory and attention
 - **Emotional Control Activities**: Emotional regulation and awareness exercises
 
 ### Technical Features
 - **Text-to-Speech Integration**: Spoken instructions and feedback using `flutter_tts`
 - **Visual Celebrations**: Confetti animations for positive reinforcement
 - **Machine Learning**: On-device ML inference with TensorFlow Lite
+- **IoT Heart Rate Monitoring**: Real-time engagement and emotional state tracking via custom device
 - **Responsive Design**: Optimized for tablets and mobile devices
 - **Accessibility**: Designed with special needs considerations
 
@@ -134,6 +136,7 @@ flutter_lints: ^5.0.0        # Code quality and style guidelines
 - Positive reinforcement through celebrations
 - Progressive difficulty levels
 - Consistent interface patterns
+- IoT Heart Rate Monitoring: Tracks real time engagement and emotional state
 
 ## Testing
 
