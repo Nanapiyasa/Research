@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'Vocational/chefLv01.dart';
-import 'welcome_screen.dart';
 
-class GameMenuNew extends StatefulWidget {
+class GameMenuMain extends StatefulWidget {
   final Map<String, dynamic>? questionnaireResults;
   final String? predictedModule;
 
-  const GameMenuNew({super.key, this.questionnaireResults, this.predictedModule});
+  const GameMenuMain({super.key, this.questionnaireResults, this.predictedModule});
 
   @override
-  State<GameMenuNew> createState() => _GameMenuNewState();
+  State<GameMenuMain> createState() => _GameMenuMainState();
 }
 
-class _GameMenuNewState extends State<GameMenuNew> {
+class _GameMenuMainState extends State<GameMenuMain> {
   int totalScore = 0;
   int gamesPlayed = 0;
 
@@ -78,7 +77,7 @@ class _GameMenuNewState extends State<GameMenuNew> {
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/background.jpg'), // Your background image
+            image: AssetImage('assets/LevelBackground.png'), // Your background image
             fit: BoxFit.cover,
           ),
           gradient: LinearGradient(
@@ -111,7 +110,7 @@ class _GameMenuNewState extends State<GameMenuNew> {
                           onPressed: () => Navigator.pop(context),
                         ),
                         Text(
-                          'Game Menu',
+                          'Choose Your Quest',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 24,
@@ -170,7 +169,7 @@ class _GameMenuNewState extends State<GameMenuNew> {
         if (game.title == 'Chef') {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => WelcomeScreen()),
+            MaterialPageRoute(builder: (context) => KitchenLearningGame()),
           );
         } else {
           _showGameDialog(game);
