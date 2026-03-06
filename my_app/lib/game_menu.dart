@@ -15,28 +15,28 @@ class GameMenu extends StatefulWidget {
 class _GameMenuState extends State<GameMenu> {
   int totalScore = 0;
   int gamesPlayed = 0;
-  int chefHighScore = 0;
-  int retailHighScore = 0;
-  int cleaningHighScore = 0;
+  int fruitSaladHighScore = 0;
+  int teaHighScore = 0;
+  int pastryHighScore = 0;
 
   final List<GameOption> games = [
     GameOption(
-      title: 'Chef',
-      icon: '👨‍🍳',
+      title: 'Fruit Salad',
+      icon: '🥗',
       color: const Color(0xFFFF6B35),
-      description: 'Prepare delicious meals and manage kitchen operations',
+      description: 'Prepare fresh and healthy fruit salads',
     ),
     GameOption(
-      title: 'Retail',
-      icon: '🛍️',
+      title: 'Tea',
+      icon: '🍵',
       color: const Color(0xFF004E89),
-      description: 'Manage store operations and help customers',
+      description: 'Brew and serve perfect tea',
     ),
     GameOption(
-      title: 'Cleaning',
-      icon: '🧹',
+      title: 'Pastry',
+      icon: '�',
       color: const Color(0xFF1B998B),
-      description: 'Organize and maintain cleanliness',
+      description: 'Create delicious pastries and desserts',
     ),
   ];
 
@@ -144,9 +144,9 @@ class _GameMenuState extends State<GameMenu> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildHighScoreItem('👨‍🍳 Chef', chefHighScore),
-                          _buildHighScoreItem('🛍️ Retail', retailHighScore),
-                          _buildHighScoreItem('🧹 Cleaning', cleaningHighScore),
+                          _buildHighScoreItem('🥗 Fruit Salad', fruitSaladHighScore),
+                          _buildHighScoreItem('🍵 Tea', teaHighScore),
+                          _buildHighScoreItem('� Pastry', pastryHighScore),
                         ],
                       ),
                     ],

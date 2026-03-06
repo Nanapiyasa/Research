@@ -1,6 +1,13 @@
 // Web compatibility stub for tflite_flutter
 import 'dart:typed_data';
 
+class Tensor {
+  final List<int> shape;
+  final String type;
+  
+  Tensor(this.shape, this.type);
+}
+
 class Interpreter {
   static Interpreter fromBuffer(Uint8List buffer) {
     return Interpreter._();
@@ -8,6 +15,14 @@ class Interpreter {
   
   Interpreter._() {
     print('Mock Interpreter created for web platform');
+  }
+  
+  List<Tensor> getInputTensors() {
+    return [Tensor([1, 9], 'float32')];
+  }
+  
+  List<Tensor> getOutputTensors() {
+    return [Tensor([1, 3], 'float32')];
   }
   
   void run(List input, List output) {

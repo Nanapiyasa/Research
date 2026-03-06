@@ -11,19 +11,19 @@ class WelcomeScreen extends StatefulWidget {
 
 class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 2000),
       vsync: this,
-    )..repeat(reverse: true);
-
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.2,
+    )..forward();
+    
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
     ).animate(CurvedAnimation(
       parent: _animationController,
       curve: Curves.easeInOut,
@@ -42,103 +42,231 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 🔹 Background Image
-          Image.asset(
-            'assets/LevelBackground.png',
-            fit: BoxFit.cover,
-          ),
-
-          // 🔹 Dark overlay for readability
+          // Background gradient
           Container(
-            color: Colors.black.withOpacity(0.35),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFFFF6B35), // Orange
+                  Color(0xFFE53E3E), // Red
+                  Color(0xFFC53030), // Dark red
+                ],
+              ),
+            ),
           ),
-
-          // 🔹 Center Content
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Welcome Card (moved up)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 30,
-                    vertical: 20,
-                  ),
-                  margin: const EdgeInsets.symmetric(horizontal: 32),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.shade700,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Column(
-                    children: const [
-                      Text(
-                        "Hello!",
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        "Welcome to the\nChili's Restaurant",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 26,
-                          color: Colors.white,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
+          
+          // Kitchen overlay pattern
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/kitchen1.jpg'),
+                  fit: BoxFit.cover,
+                  opacity: 0.2,
                 ),
-
-                const SizedBox(height: 10),
-
-                // Chef Illustration (moved down)
-                Image.asset(
-                  'assets/KitchenAssistant.jpg',
-                  height: 90,
-                ),
-
-                const SizedBox(height: 24),
-
-                // Let's Start Button with animation
-                AnimatedBuilder(
-                  animation: _scaleAnimation,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _scaleAnimation.value,
-                      child: SizedBox(
-                        width: 180,
-                        height: 46,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => GameMenuMain()),
+              ),
+            ),
+          ),
+          
+          // Main content
+          SafeArea(
+            child: Center(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 40),
+                    
+                    // Avatar section
+                    Container(
+                      width: 140,
+                      height: 140,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.9),
+                        border: Border.all(
+                          color: Colors.white,
+                          width: 4,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/KitchenAssistant.jpg',
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.person,
+                              size: 70,
+                              color: Color(0xFFE53E3E),
                             );
                           },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.indigo,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: const Text(
-                            "Let’s Start",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
                         ),
                       ),
-                    );
-                  },
+                    ),
+                    
+                    const SizedBox(height: 30),
+                    
+                    // Welcome message
+                    const Text(
+                      "Welcome to",
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w300,
+                        color: Colors.white,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 8),
+                    
+                    // Restaurant name
+                    Text(
+                      "Chili's Restaurant",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        height: 1.2,
+                        letterSpacing: 1.5,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 6,
+                            offset: Offset(2, 2),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 40),
+                    
+                    // Quote in orange box
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 30),
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Color(0xFFFF6B35),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 15,
+                            offset: const Offset(0, 8),
+                            spreadRadius: 3,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // Quote icon
+                          Icon(
+                            Icons.format_quote,
+                            color: Colors.white.withOpacity(0.8),
+                            size: 32,
+                          ),
+                          
+                          const SizedBox(height: 12),
+                          
+                          // Quote text
+                          const Text(
+                            "Cooking is not just about ingredients, recipes, and cooking. It's about harnessing imagination, empowerment, and creativity.",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                              height: 1.4,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 12),
+                          
+                          // Quote icon (closing)
+                          Transform.rotate(
+                            angle: 3.14159,
+                            child: Icon(
+                              Icons.format_quote,
+                              color: Colors.white.withOpacity(0.8),
+                              size: 32,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 50),
+                    
+                    // Start button
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => GameMenuMain()),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 50,
+                            vertical: 16,
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.play_arrow,
+                              color: Color(0xFFE53E3E),
+                              size: 24,
+                            ),
+                            SizedBox(width: 12),
+                            const Text(
+                              "Let's Start",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFE53E3E),
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ],

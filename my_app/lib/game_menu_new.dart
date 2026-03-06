@@ -16,34 +16,54 @@ class _GameMenuNewState extends State<GameMenuNew> {
   int totalScore = 0;
   int gamesPlayed = 0;
 
-  final List<GameTile> games = [
-    GameTile(
-      title: 'Chef',
-      icon: '👨‍🍳',
-      color: Color(0xFFFF6B35),
-      level: 1,
-      progress: 0.3,
-    ),
-    GameTile(
-      title: 'Retail',
-      icon: '🛍️',
-      color: Color(0xFF004E89),
-      level: 1,
-      progress: 0.0,
-    ),
-    GameTile(
-      title: 'Cleaning',
-      icon: '🧹',
-      color: Color(0xFF1B998B),
-      level: 1,
-      progress: 0.0,
-    ),
-  ];
+  late List<GameTile> games;
 
   @override
   void initState() {
     super.initState();
+    _initializeGamesWithConfidence();
     _showRecommendationIfNeeded();
+  }
+
+  void _initializeGamesWithConfidence() {
+    // Default confidence values
+    double chefConfidence = 0.3;
+    double retailConfidence = 0.0;
+    double cleaningConfidence = 0.0;
+
+    // Use confidence values from questionnaire results if available
+    if (widget.questionnaireResults != null) {
+      Map<String, double> allScores = widget.questionnaireResults!['allScores'] ?? {};
+      chefConfidence = allScores['chef'] ?? 0.3;
+      retailConfidence = allScores['retail'] ?? 0.0;
+      cleaningConfidence = allScores['cleaning'] ?? 0.0;
+      
+      print('Using confidence scores: Chef=${(chefConfidence * 100).toStringAsFixed(1)}%, Retail=${(retailConfidence * 100).toStringAsFixed(1)}%, Cleaning=${(cleaningConfidence * 100).toStringAsFixed(1)}%');
+    }
+
+    games = [
+      GameTile(
+        title: 'Chef',
+        icon: '👨‍🍳',
+        color: Color(0xFFFF6B35),
+        level: 1,
+        progress: chefConfidence,
+      ),
+      GameTile(
+        title: 'Retail',
+        icon: '🛍️',
+        color: Color(0xFF004E89),
+        level: 1,
+        progress: retailConfidence,
+      ),
+      GameTile(
+        title: 'Cleaning',
+        icon: '🧹',
+        color: Color(0xFF1B998B),
+        level: 1,
+        progress: cleaningConfidence,
+      ),
+    ];
   }
 
   void _showRecommendationIfNeeded() {
@@ -253,7 +273,7 @@ class _GameMenuNewState extends State<GameMenuNew> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Progress',
+                        'Confidence',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.8),
                           fontSize: 10,
@@ -273,7 +293,7 @@ class _GameMenuNewState extends State<GameMenuNew> {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        '${(game.progress * 100).toStringAsFixed(0)}%',
+                        '${(game.progress * 100).toStringAsFixed(1)}%',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.7),
                           fontSize: 9,
@@ -398,7 +418,7 @@ class _GameMenuNewState extends State<GameMenuNew> {
               ),
               SizedBox(height: 10),
               Text(
-                'Progress: ${(game.progress * 100).toStringAsFixed(0)}%',
+                'Confidence: ${(game.progress * 100).toStringAsFixed(1)}%',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.9),
                   fontSize: 14,
