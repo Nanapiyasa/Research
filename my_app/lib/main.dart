@@ -7,10 +7,12 @@ import 'loading_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  // Set orientation to portrait only
+  // Allow both orientations (games will set their preferred orientation)
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
   ]);
   runApp(MyApp());
 }

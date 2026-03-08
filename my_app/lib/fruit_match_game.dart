@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:confetti/confetti.dart';
+import 'fruit_match_level2.dart';
 
 class FruitMatchGame extends StatelessWidget {
   const FruitMatchGame({Key? key}) : super(key: key);
@@ -31,23 +32,9 @@ class LandscapeGame extends StatelessWidget {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
-    
+
     return const GameScreen();
   }
-}
-
-class Fruit {
-  final String name;
-  final Color color;
-  final String emoji;
-  final String imagePath;
-
-  Fruit({
-    required this.name,
-    required this.color,
-    required this.emoji,
-    required this.imagePath,
-  });
 }
 
 class GameScreen extends StatefulWidget {
@@ -71,6 +58,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late AnimationController _questionAnimationController;
   late Animation<double> _questionScaleAnimation;
   
+  // Timer variables
+  int _seconds = 0;
+  Timer? _timer;
+  
+  // Animation for level complete dialog
+  late AnimationController _dialogAnimationController;
+  late Animation<double> _dialogScaleAnimation;
+  
   // Confetti controller
   late ConfettiController _confettiController;
 
@@ -82,87 +77,77 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     // Initialize confetti controller
     _confettiController = ConfettiController(duration: const Duration(seconds: 2));
     
+    // Initialize dialog animation controller
+    _dialogAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    
+    _dialogScaleAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _dialogAnimationController,
+      curve: Curves.elasticOut,
+    ));
+    
     _scaleController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
     _questionAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 1200), // Slower animation for better performance
+      duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
 
     _questionScaleAnimation = Tween<double>(
       begin: 1.0,
-      end: 1.15, // Reduced scale range for better performance
+      end: 1.15,
     ).animate(CurvedAnimation(
       parent: _questionAnimationController,
-      curve: Curves.linear, // Use linear curve for better performance
+      curve: Curves.linear,
     ));
-    
-    // Start animation after initialization
-    _questionAnimationController.repeat(reverse: true);
-    
+
     _generateNewRound();
+    _startQuestionAnimation();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      setState(() {
+        _seconds++; // Count up
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    _questionAnimationController.dispose();
+    _dialogAnimationController.dispose();
+    _confettiController.dispose();
+    _timer?.cancel(); // Cancel timer
+    super.dispose();
   }
 
   void _initializeFruits() {
     fruits = [
-      // Papaya stages
-      Fruit(
-        name: 'Unripe Papaya',
-        color: const Color(0xFF2E7D32), // Dark Green
-        emoji: '🟢',
-        imagePath: 'assets/Unripe papaya dark.png',
-      ),
-      Fruit(
-        name: 'Half-Ripe Papaya',
-        color: const Color(0xFF9CCC65), // Green + Yellow mix
-        emoji: '🟡',
-        imagePath: 'assets/Half ripe.png',
-      ),
-      Fruit(
-        name: 'Ripe Papaya',
-        color: const Color(0xFFFFB74D), // Yellow-Orange
-        emoji: '🟠',
-        imagePath: 'assets/Ripe Papaya.png',
-      ),
-      // Mango stages
-      Fruit(
-        name: 'Unripe Mango',
-        color: const Color(0xFF2E7D32), // Dark Green
-        emoji: '🟢',
-        imagePath: 'assets/Unripe Mango .png',
-      ),
-      Fruit(
-        name: 'Ripe Yellow Mango',
-        color: const Color(0xFFFFB74D), // Yellow-Orange
-        emoji: '�',
-        imagePath: 'assets/Ripe Mango.png',
-      ),
-      // Banana stages
-      Fruit(
-        name: 'Unripe Banana',
-        color: const Color(0xFF2E7D32), // Dark Green
-        emoji: '🟢',
-        imagePath: 'assets/Unripe Banana.png',
-      ),
-      Fruit(
-        name: 'Overripe Banana',
-        color: const Color(0xFF8D6E63), // Brown
-        emoji: '�',
-        imagePath: 'assets/Over ripe banana.png',
-      ),
-      Fruit(
-        name: 'Ripe Banana',
-        color: const Color(0xFFFFB74D), // Yellow-Orange
-        emoji: '�',
-        imagePath: 'assets/Ripe Banana.png',
-      ),
+      Fruit(name: 'Ripe Papaya', assetPath: 'assets/Ripe Papaya.png'),
+      Fruit(name: 'Ripe Yellow Mango', assetPath: 'assets/Ripe Mango.png'),
+      Fruit(name: 'Ripe Banana', assetPath: 'assets/Ripe Banana.png'),
+      Fruit(name: 'Half ripe Papaya', assetPath: 'assets/Half ripe.png'),
+      Fruit(name: 'Unripe Papaya dark', assetPath: 'assets/Unripe papaya dark.png'),
+      Fruit(name: 'Unripe Mango', assetPath: 'assets/Unripe Mango .png'),
+      Fruit(name: 'Unripe Banana', assetPath: 'assets/Unripe Banana.png'),
     ];
   }
 
+  void _startQuestionAnimation() {
+    _questionAnimationController.repeat(reverse: true);
+  }
+
   void _generateNewRound() {
-    // Only target the correct ripe fruits
     final correctRipeFruits = fruits.where((f) => 
         f.name == 'Ripe Papaya' || 
         f.name == 'Ripe Yellow Mango' || 
@@ -174,23 +159,27 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     options = [];
     options.add(targetFruit);
     
-    // Add 2 wrong options from the remaining fruits
-    final availableFruits = fruits.where((f) => f.name != targetFruit.name).toList();
-    availableFruits.shuffle();
-    options.addAll(availableFruits.take(2));
+    // Add 3 random incorrect options for 2x2 grid (1 correct + 3 incorrect = 4 total)
+    final incorrectFruits = fruits.where((f) => 
+        f.name != 'Ripe Papaya' && 
+        f.name != 'Ripe Yellow Mango' && 
+        f.name != 'Ripe Banana'
+    ).toList();
+    
+    incorrectFruits.shuffle();
+    for (int i = 0; i < 3 && i < incorrectFruits.length; i++) {
+      options.add(incorrectFruits[i]);
+    }
     
     options.shuffle();
     isAnswered = false;
     selectedFruitName = null;
     isCorrect = false;
-    
-    // Start continuous pop in and out animation for new question
-    // Animation is already running from initState
   }
 
   void _handleFruitSelection(Fruit selectedFruit) {
     if (isAnswered) return;
-    
+
     setState(() {
       isAnswered = true;
       selectedFruitName = selectedFruit.name;
@@ -207,7 +196,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       // Trigger confetti for correct answer
       _confettiController.play();
       
-      // Check if level score limit reached
       if (score >= levelScoreLimit) {
         _showLevelCompleteDialog();
       } else {
@@ -219,6 +207,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       }
     } else {
       setState(() => lives--);
+      
       if (lives <= 0) {
         _showGameOverDialog();
       } else {
@@ -232,26 +221,126 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _showLevelCompleteDialog() {
+    _dialogAnimationController.forward();
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Level 1 Complete!'),
-        content: Text('Congratulations! You completed Level 1 with a score of $score!'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() {
-                score = 0;
-                lives = 3;
-                _generateNewRound();
-              });
-            },
-            child: const Text('Play Again'),
+      builder: (BuildContext context) {
+        return ScaleTransition(
+          scale: _dialogScaleAnimation,
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.all(30),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4CAF50),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    '🎉 Level 1 Complete!',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Amazing! You scored $score points!',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Ready for Level 2?",
+                    style: TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      height: 1.1,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const Spacer(flex: 3),
+                  // Buttons Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Play Again Button
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          setState(() {
+                            score = 0;
+                            lives = 3;
+                            _generateNewRound();
+                          });
+                        },
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: const BorderSide(color: Colors.white),
+                          ),
+                        ),
+                        child: const Text(
+                          "Play Again",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      // Let's Go Button
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const FruitMatchLevel2Game(),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          "Let's Go!",
+                          style: TextStyle(
+                            color: Color(0xFF4CAF50),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                ],
+              ),
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -280,14 +369,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   @override
-  void dispose() {
-    _scaleController.dispose();
-    _questionAnimationController.dispose();
-    _confettiController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
@@ -307,282 +388,512 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     // Small screen - vertical layout
                     return Column(
                       children: [
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildCompactStatItem('Score', score.toString()),
-                            const SizedBox(width: 16),
-                            _buildCompactStatItem('Lives', lives.toString()),
-                          ],
-                color: Colors.orange,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    if (constraints.maxWidth < 400) {
-                      // Small screen - vertical layout
-                      return Column(
-                        children: [
-                          const Text(
-                            'Match the Ripe Fruits',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _buildCompactStatItem('Score', score.toString()),
-                              const SizedBox(width: 16),
-                              _buildCompactStatItem('Lives', lives.toString()),
-                            ],
-                          ),
-                        ],
-                      );
-                    } else {
-                      // Large screen - horizontal layout
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Match the Ripe Fruits',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              _buildStatItem('Score', score.toString()),
-                              const SizedBox(width: 16),
-                              _buildStatItem('Lives', lives.toString()),
-                            ],
-                          ),
-                        ],
-                      );
-                    }
-                  },
-                ),
-              ),
-              // Main game area - Horizontal split
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      // Left side - Target fruit display
-                      Expanded(
-                        flex: 1,
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
+                        // Top bar with title - Tea game style
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: Colors.orange,
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
+                                color: Colors.black.withOpacity(0.2),
                                 blurRadius: 8,
                                 offset: const Offset(0, 4),
                               ),
                             ],
                           ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text(
-                                'Find this ripe fruit:',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: targetFruit.color,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: Colors.black26,
-                                      width: 2,
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              if (constraints.maxWidth < 400) {
+                                // Small screen - vertical layout
+                                return Column(
+                                  children: [
+                                    const Text(
+                                      'Fruit Matching',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      textAlign: TextAlign.center,
                                     ),
-                                  ),
-                                  child: AnimatedBuilder(
-                                    animation: _questionScaleAnimation,
-                                    builder: (context, child) {
-                                      return Transform.scale(
-                                        scale: _questionScaleAnimation.value,
-                                        child: Image.asset(
-                                          targetFruit.imagePath,
-                                          fit: BoxFit.contain,
-                                          alignment: Alignment.center,
-                                          errorBuilder: (context, error, stackTrace) {
-                                            return const Icon(
-                                              Icons.image_not_supported,
-                                              size: 80,
-                                              color: Colors.white,
-                                            );
-                                          },
-                                        ),
-                                      );
-                                    },
-                                  ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        _buildCompactStatItem('Score', score.toString()),
+                                        const SizedBox(width: 16),
+                                        _buildCompactTimer(),
+                                        const SizedBox(width: 16),
+                                        _buildCompactStatItem('Lives', lives.toString()),
+                                      ],
+                                    ),
+                                  ],
+                                );
+                              } else {
+                                // Large screen - horizontal layout
+                                return Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      'Fruit Matching - Level 1',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    _buildTimer(),
+                                    Row(
+                                      children: [
+                                        _buildStatItem('Score', score.toString()),
+                                        const SizedBox(width: 16),
+                                        _buildStatItem('Lives', lives.toString()),
+                                      ],
+                                    ),
+                                  ],
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                        // Main content area
+                        Expanded(
+                          child: Column(
+                            children: [
+                              // Fruit display area (math area)
+                              Expanded(
+                                flex: 2,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text(
+                                      'Find the Ripe Fruit',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    _buildQuestionCard(),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              Text(
-                                targetFruit.name,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                textAlign: TextAlign.center,
+                              // Answer options area
+                              Expanded(
+                                flex: 3,
+                                child: _buildOptionsGrid(isSmallScreen: true),
                               ),
                             ],
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      // Right side - Answer options
-                      Expanded(
-                        flex: 1,
-                        child: GridView.builder(
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            childAspectRatio: 1.0, // Makes tiles square
+                      ],
+                    );
+                  } else {
+                    // Large screen - horizontal layout
+                    return Column(
+                      children: [
+                        // Top bar with title - Tea game style
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.orange,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
-                          itemCount: options.length,
-                          itemBuilder: (context, index) {
-                            final fruit = options[index];
-                            final isSelected = selectedFruitName == fruit.name;
-                            
-                            return ScaleTransition(
-                              scale: isSelected
-                                  ? Tween(begin: 1.0, end: 1.05).animate(
-                                      _scaleController,
-                                    )
-                                  : AlwaysStoppedAnimation(1.0),
-                              child: GestureDetector(
-                                onTap: () =>
-                                    _handleFruitSelection(fruit),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? (isCorrect
-                                            ? Colors.green
-                                            : Colors.red)
-                                        : Colors.white,
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: isSelected
-                                          ? Colors.transparent
-                                          : Colors.black12,
-                                      width: 2,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.15),
-                                        blurRadius: 15,
-                                        offset: const Offset(0, 8),
-                                        spreadRadius: 2,
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              if (constraints.maxWidth < 400) {
+                                // Small screen - vertical layout
+                                return Column(
+                                  children: [
+                                    const Text(
+                                      'Fruit Matching',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
                                       ),
-                                      BoxShadow(
-                                        color: fruit.color.withOpacity(0.2),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                    gradient: isSelected
-                                        ? null
-                                        : LinearGradient(
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                            colors: [
-                                              Colors.white,
-                                              Colors.grey.shade50,
-                                            ],
-                                          ),
-                                  ),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    child: Image.asset(
-                                      fruit.imagePath,
-                                      fit: BoxFit.contain,
-                                      alignment: Alignment.center,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return const Icon(
-                                          Icons.image_not_supported,
-                                          size: 60,
-                                          color: Colors.grey,
-                                        );
-                                      },
+                                      textAlign: TextAlign.center,
                                     ),
-                                  ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        _buildCompactStatItem('Score', score.toString()),
+                                        const SizedBox(width: 16),
+                                        _buildCompactTimer(),
+                                        const SizedBox(width: 16),
+                                        _buildCompactStatItem('Lives', lives.toString()),
+                                      ],
+                                    ),
+                                  ],
+                                );
+                              } else {
+                                // Large screen - horizontal layout
+                                return Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      'Fruit Matching',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    _buildTimer(),
+                                    Row(
+                                      children: [
+                                        _buildStatItem('Score', score.toString()),
+                                        const SizedBox(width: 16),
+                                        _buildStatItem('Lives', lives.toString()),
+                                      ],
+                                    ),
+                                  ],
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                        // Main content area
+                        Expanded(
+                          child: Row(
+                            children: [
+                              // Left side - Fruit display (math area)
+                              Expanded(
+                                flex: 1,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text(
+                                      'Find the Ripe Fruit',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 30),
+                                    _buildQuestionCard(),
+                                  ],
                                 ),
                               ),
-                            );
-                          },
+                              // Right side - Answer options
+                              Expanded(
+                                flex: 1,
+                                child: _buildOptionsGrid(isSmallScreen: false),
+                              ),
+                            ],
+                          ),
                         ),
+                      ],
+                    );
+                  }
+                },
+              ),
+            ),
+          ),
+          
+          // Confetti overlay
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirection: math.pi / 2, // downward direction
+              blastDirectionality: BlastDirectionality.directional,
+              particleDrag: 0.05,
+              emissionFrequency: 0.05,
+              numberOfParticles: 50,
+              gravity: 0.1,
+              shouldLoop: false,
+              colors: [
+                Colors.green,
+                Colors.blue,
+                Colors.pink,
+                Colors.orange,
+                Colors.purple
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuestionCard() {
+    return ScaleTransition(
+      scale: _questionScaleAnimation,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Find the ripe fruit:',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 15),
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: Colors.orange, width: 3),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset(
+                  targetFruit.assetPath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey[200],
+                      child: const Center(
+                        child: Icon(Icons.image, size: 50, color: Colors.grey),
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 15),
+            Text(
+              targetFruit.name,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
-        
-        // Confetti overlay
-        Align(
-          alignment: Alignment.topCenter,
-          child: ConfettiWidget(
-            confettiController: _confettiController,
-            blastDirection: math.pi / 2, // downward direction
-            blastDirectionality: BlastDirectionality.directional,
-            particleDrag: 0.05,
-            emissionFrequency: 0.05,
-            numberOfParticles: 50,
-            gravity: 0.1,
-            shouldLoop: false,
-            colors: [
-              Colors.green,
-              Colors.blue,
-              Colors.pink,
-              Colors.orange,
-              Colors.purple
-            ],
-          ),
+      ),
+    );
+  }
+
+  Widget _buildOptionsGrid({required bool isSmallScreen}) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2, // Always 2x2 grid
+          mainAxisSpacing: 15,
+          crossAxisSpacing: 15,
+          childAspectRatio: 0.8,
         ),
-      ],
-    ),
-  );
+        itemCount: options.length,
+        itemBuilder: (context, index) {
+          final fruit = options[index];
+          final isSelected = selectedFruitName == fruit.name;
+          
+          return ScaleTransition(
+            scale: isSelected
+                ? Tween(begin: 1.0, end: 1.05).animate(
+                    _scaleController,
+                  )
+                : AlwaysStoppedAnimation(1.0),
+            child: GestureDetector(
+              onTap: () => _handleFruitSelection(fruit),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? (isCorrect
+                          ? Colors.green
+                          : Colors.red)
+                      : Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(
+                    color: isSelected
+                        ? Colors.transparent
+                        : Colors.black12,
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 5,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          gradient: isSelected
+                              ? null
+                              : LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Colors.white,
+                                    Colors.grey.shade50,
+                                  ],
+                                ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.asset(
+                            fruit.assetPath,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey[200],
+                                child: const Center(
+                                  child: Icon(Icons.image, size: 30, color: Colors.grey),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Text(
+                          fruit.name,
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 10 : 12,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected ? Colors.white : Colors.black87,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   Widget _buildStatItem(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.5)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.white.withOpacity(0.8),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactStatItem(String label, String value) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.3),
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withOpacity(0.5)),
       ),
       child: Column(
         children: [
           Text(
-            label,
+            value,
             style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
               color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
             ),
           ),
           Text(
-            value,
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.white.withOpacity(0.8),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimer() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.3),
+          width: 2,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.timer,
+            color: Colors.white,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${_seconds}s',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 18,
@@ -594,26 +905,25 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildCompactStatItem(String label, String value) {
+  Widget _buildCompactTimer() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withOpacity(0.5)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            '$label: ',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-            ),
+          Icon(
+            Icons.timer,
+            color: Colors.white,
+            size: 16,
           ),
+          const SizedBox(width: 6),
           Text(
-            value,
+            '${_seconds}s',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 14,
@@ -624,4 +934,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       ),
     );
   }
+}
+
+class Fruit {
+  final String name;
+  final String assetPath;
+
+  Fruit({required this.name, required this.assetPath});
 }
