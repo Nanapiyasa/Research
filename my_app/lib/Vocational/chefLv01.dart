@@ -50,31 +50,31 @@ class _KitchenLearningGameState extends State<KitchenLearningGame>
     ),
     KitchenItem(
       id: 3,
-      name: 'Plate',
-      imageUrl: 'https://images.unsplash.com/photo-1578469550956-0e16b69c6a3d?w=400&h=400&fit=crop',
-      primaryColor: const Color(0xFFF59E0B),
-      accentColor: const Color(0xFFFBBF24),
+      name: 'Knife',
+      imageUrl: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=400&fit=crop',
+      primaryColor: const Color(0xFFEF4444),
+      accentColor: const Color(0xFFF87171),
     ),
     KitchenItem(
       id: 4,
-      name: 'Cup',
-      imageUrl: 'https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?w=400&h=400&fit=crop',
-      primaryColor: const Color(0xFFEC4899),
-      accentColor: const Color(0xFFF472B6),
-    ),
-    KitchenItem(
-      id: 5,
-      name: 'Knife',
-      imageUrl: 'https://images.unsplash.com/photo-1593618998160-e34014e67546?w=400&h=400&fit=crop',
+      name: 'Plate',
+      imageUrl: 'https://images.unsplash.com/photo-1528722828814-77b9b83aafb2?w=400&h=400&fit=crop',
       primaryColor: const Color(0xFF8B5CF6),
       accentColor: const Color(0xFFA78BFA),
     ),
     KitchenItem(
+      id: 5,
+      name: 'Cup',
+      imageUrl: 'https://images.unsplash.com/photo-1514228742587-6b1558fc0d42?w=400&h=400&fit=crop',
+      primaryColor: const Color(0xFF3B82F6),
+      accentColor: const Color(0xFF60A5FA),
+    ),
+    KitchenItem(
       id: 6,
       name: 'Bowl',
-      imageUrl: 'https://images.unsplash.com/photo-1585338107529-13adb4d5c6e5?w=400&h=400&fit=crop',
-      primaryColor: const Color(0xFFEF4444),
-      accentColor: const Color(0xFFF87171),
+      imageUrl: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=400&h=400&fit=crop',
+      primaryColor: const Color(0xFFF59E0B),
+      accentColor: const Color(0xFFFBBF24),
     ),
   ];
 
@@ -82,18 +82,19 @@ class _KitchenLearningGameState extends State<KitchenLearningGame>
   KitchenItem? currentTarget;
   List<KitchenItem> options = [];
   int score = 0;
-  List<int> completedItems = [];
-  bool showCelebration = false;
-  bool wrongAttempt = false;
+  int attempts = 0;
   int? selectedItemId;
+  bool wrongAttempt = false;
+  bool showCelebration = false;
+  Set<int> completedItems = {};
 
   late ConfettiController confettiController;
   late AnimationController shakeController;
-  late Animation<double> shakeAnimation;
   late AnimationController pulseController;
+  late AnimationController slideController;
+  late Animation<double> shakeAnimation;
   late Animation<double> pulseAnimation;
-  late AnimationController fadeController;
-  late Animation<double> fadeAnimation;
+  late Animation<Offset> slideAnimation;
 
   @override
   void initState() {
@@ -120,13 +121,17 @@ class _KitchenLearningGameState extends State<KitchenLearningGame>
     );
     pulseController.repeat(reverse: true);
 
-    fadeController = AnimationController(
+    slideController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 500),
     );
-    fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: fadeController, curve: Curves.easeOut),
-    );
+    slideAnimation = Tween<Offset>(
+      begin: const Offset(1.0, 0.0), // Start from right
+      end: Offset.zero, // End at center
+    ).animate(CurvedAnimation(
+      parent: slideController,
+      curve: Curves.easeInOut,
+    ));
 
     startNewRound();
   }
@@ -151,7 +156,7 @@ class _KitchenLearningGameState extends State<KitchenLearningGame>
     confettiController.dispose();
     shakeController.dispose();
     pulseController.dispose();
-    fadeController.dispose();
+    slideController.dispose();
     super.dispose();
   }
 
@@ -176,7 +181,7 @@ class _KitchenLearningGameState extends State<KitchenLearningGame>
       selectedItemId = null;
     });
     
-    fadeController.forward(from: 0);
+    slideController.forward(from: 0);
   }
 
   Future<void> speak(String text, {bool slower = false}) async {
@@ -230,7 +235,7 @@ class _KitchenLearningGameState extends State<KitchenLearningGame>
 
   void resetGame() {
     setState(() {
-      completedItems = [];
+      completedItems = <int>{};
       score = 0;
       showCelebration = false;
       selectedItemId = null;
@@ -253,8 +258,8 @@ class _KitchenLearningGameState extends State<KitchenLearningGame>
             Expanded(
               child: Stack(
                 children: [
-                  FadeTransition(
-                    opacity: fadeAnimation,
+                  SlideTransition(
+                    position: slideAnimation,
                     child: isIntroduction ? _buildIntroductionPage() : _buildGamePage(),
                   ),
                   if (showCelebration)
@@ -496,10 +501,14 @@ class _KitchenLearningGameState extends State<KitchenLearningGame>
                 color: const Color(0xFF10B981),
                 isPrimary: true,
                 onPressed: () {
-                  setState(() => page = 'game');
-                  fadeController.forward(from: 0);
-                  Timer(const Duration(milliseconds: 500), () {
-                    speak("Now find the ${currentTarget!.name}!", slower: true);
+                  // Slide out the introduction page
+                  slideController.reverse().then((_) {
+                    setState(() => page = 'game');
+                    // Slide in the game page
+                    slideController.forward(from: 0);
+                    Timer(const Duration(milliseconds: 500), () {
+                      speak("Now find the ${currentTarget!.name}!", slower: true);
+                    });
                   });
                 },
               ),

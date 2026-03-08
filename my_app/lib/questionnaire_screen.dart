@@ -6,8 +6,9 @@ import 'model_service.dart';
 class Question {
   final String questionText;
   final List<String> options;
+  final bool isStarRating;
 
-  Question({required this.questionText, required this.options});
+  Question({required this.questionText, required this.options, this.isStarRating = false});
 }
 
 // Questionnaire Screen
@@ -27,34 +28,36 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
   late Animation<double> _fadeAnimation;
 
   final List<Question> questions = [
-    Question(questionText: "Do you like helping peoples?", options: ["1", "2", "3", "4", "5"]),
+    Question(questionText: "Does the student enjoy helping others?", options: ["1", "2", "3", "4", "5"], isStarRating: true),
     Question(
-      questionText: "Do you like arranging or organizing things?",
+      questionText: "Does the student like arranging or organizing things?",
       options: ["1", "2", "3", "4", "5"],
+      isStarRating: true,
     ),
-    Question(questionText: "Do you enjoy talking to people?", options: ["1", "2", "3", "4", "5"]),
+    Question(questionText: "Does the student enjoy interacting with people?", options: ["1", "2", "3", "4", "5"], isStarRating: true),
     Question(
-      questionText: "Do you like making or preparing things?",
+      questionText: "Does the student like making or preparing things?",
       options: ["1", "2", "3", "4", "5"],
+      isStarRating: true,
     ),
     Question(
-      questionText: "Can you follow simple instructions?",
+      questionText: "Can the student follow simple instructions?",
       options: ["Yes", "Sometimes", "Needs help"],
     ),
     Question(
-      questionText: "Can You remember daily routines?",
+      questionText: "Can the student remember daily routines?",
       options: ["Yes", "Sometimes", "Needs help"],
     ),
     Question(
-      questionText: "Can you work well with others?",
+      questionText: "Can the student work well with others?",
       options: ["Yes", "Sometimes", "Needs help"],
     ),
     Question(
-      questionText: "Can you stay focused on a task until it is finished?",
+      questionText: "Can the student stay focused on a task until it is finished?",
       options: ["Yes", "Short time", "Needs reminders"],
     ),
     Question(
-      questionText: "Do you like working in a group?",
+      questionText: "Does the student like working in a group?",
       options: ["Yes", "Sometimes", "Prefer alone"],
     ),
   ];
@@ -62,18 +65,31 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
   @override
   void initState() {
     super.initState();
+    
+    // Initialize completion animation
     _completionAnimationController = AnimationController(
-      duration: Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
-
+    
     _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _completionAnimationController, curve: Curves.elasticOut),
+      CurvedAnimation(
+        parent: _completionAnimationController,
+        curve: Curves.elasticOut,
+      ),
     );
-
+    
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _completionAnimationController, curve: Curves.easeIn),
+      CurvedAnimation(
+        parent: _completionAnimationController,
+        curve: Curves.easeInOut,
+      ),
     );
+    
+    // Show instruction dialog after widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showInstructionDialog();
+    });
   }
 
   @override
@@ -82,21 +98,113 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
     super.dispose();
   }
 
+  void _showInstructionDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFFB322E0),
+                  Color(0xFF9b1bcc),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0xFFB322E0).withValues(alpha: 0.4),
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            padding: EdgeInsets.all(30),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon instead of checkmark
+                SizedBox(
+                  height: 120,
+                  width: 120,
+                  child: Icon(
+                    Icons.assignment,
+                    color: Colors.white,
+                    size: 80,
+                  ),
+                ),
+                // SizedBox(height: 30),
+                // Text(
+                //   "Assessment",
+                //   style: TextStyle(
+                //     color: Colors.white,
+                //     fontWeight: FontWeight.bold,
+                //     fontSize: 28,
+                //     letterSpacing: 1,
+                //   ),
+                //   textAlign: TextAlign.center,
+                // ),
+                SizedBox(height: 8),
+                Text(
+                  "Caregiver Assessment",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                    letterSpacing: 1,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 15),
+                Text(
+                  "This questionnaire helps us understand the student's abilities and preferences. Please answer honestly about the student you care for.",
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: 16,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close dialog
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                    child: Text(
+                      "Continue",
+                      style: TextStyle(
+                        color: Color(0xFFB322E0),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void selectAnswer(String answer) {
     setState(() {
       selectedAnswers[currentQuestionIndex] = answer;
-    });
-
-    // Navigate to next question after a short delay
-    Future.delayed(Duration(milliseconds: 300), () {
-      if (currentQuestionIndex < questions.length - 1) {
-        setState(() {
-          currentQuestionIndex++;
-        });
-      } else {
-        // All questions answered, show completion or navigate back
-        _showCompletionDialog();
-      }
     });
   }
 
@@ -180,7 +288,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        SizedBox(height: 15),
+                        SizedBox(height: 8),
                         Text(
                           "Thank you for completing the questionnaire.",
                           style: TextStyle(
@@ -212,10 +320,17 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
                                 _showResultsDialog(context, predictedModule, confidence, allScores);
                               } catch (e) {
                                 print('Error predicting module: $e');
+                                // Calculate fallback scores
+                                List<int> scores = _calculateScores();
+                                var fallbackResult = await VocationalModelService.instance.predictModuleWithScores(scores);
+                                
                                 // Fallback to regular navigation if model fails
                                 _completionAnimationController.reverse().then((_) {
                                   Navigator.of(context).pushReplacement(
-                                    MaterialPageRoute(builder: (context) => GameMenuNew()),
+                                    MaterialPageRoute(builder: (context) => GameMenuNew(
+                                      questionnaireResults: fallbackResult,
+                                      predictedModule: fallbackResult['predictedModule'],
+                                    )),
                                   );
                                 });
                               }
@@ -267,6 +382,17 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
     }
   }
 
+  void goToNextQuestion() {
+    if (currentQuestionIndex < questions.length - 1) {
+      setState(() {
+        currentQuestionIndex++;
+      });
+    } else {
+      // Show completion dialog when on last question
+      _showCompletionDialog();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentQuestion = questions[currentQuestionIndex];
@@ -275,254 +401,369 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFB322E0), Color(0xFF9b1bcc)],
+          image: DecorationImage(
+            image: AssetImage('assets/background.jpg'),
+            fit: BoxFit.cover,
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              children: [
-                // Top Navigation Bar
-                Row(
+          child: Column(
+            children: [
+              // Modern Header
+              Container(
+                padding: EdgeInsets.all(20),
+                child: Column(
                   children: [
-                    IconButton(
-                      icon: Icon(Icons.arrow_back, color: Colors.white, size: 28),
-                      onPressed: () {
-                        if (currentQuestionIndex > 0) {
-                          goToPreviousQuestion();
-                        } else {
-                          Navigator.pop(context);
-                        }
-                      },
-                    ),
-                    Expanded(
-                      child: Container(
-                        height: 8,
-                        margin: EdgeInsets.symmetric(horizontal: 20),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor: progress,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(4),
+                    // Progress Bar
+                    Container(
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: progress,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Color(0xFFFFD700),
+                                Color(0xFFFFA500),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
+                            borderRadius: BorderRadius.circular(3),
                           ),
                         ),
                       ),
                     ),
-                    Text(
-                      "${currentQuestionIndex + 1}/${questions.length}",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    SizedBox(height: 16),
+                    // Question Counter
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              "Question ${currentQuestionIndex + 1}",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withValues(alpha: 0.6),
+                                    offset: Offset(0, 1),
+                                    blurRadius: 3,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Color(0xFFFFD700),
+                                    Color(0xFFFFA500),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(15),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Color(0xFFFFD700).withValues(alpha: 0.4),
+                                    blurRadius: 6,
+                                    offset: Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                "For caregiver",
+                                style: TextStyle(
+                                  color: Color(0xFF2D3748),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            "${currentQuestionIndex + 1}/${questions.length}",
+                            style: TextStyle(
+                              color: Color(0xFF667EEA),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                SizedBox(height: 30),
-                // Quiz Header with Stars
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Left Star
-                    Positioned(
-                      left: 0,
-                      child: Text("✦", style: TextStyle(color: Color(0xFFFFD700), fontSize: 24)),
+              ),
+              
+              // Question Card
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 20,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    // QUIZ Header
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: Text(
-                        "QUIZ",
-                        style: TextStyle(
-                          color: Color(0xFFB322E0),
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 3,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Question Text
+                        Text(
+                          currentQuestion.questionText,
+                          style: TextStyle(
+                            color: Color(0xFF2D3748),
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            height: 1.5,
+                          ),
+                        ),
+                        SizedBox(height: 32),
+                        
+                        // Options
+                        Expanded(
+                          child: Scrollbar(
+                            thumbVisibility: true,
+                            thickness: 6,
+                            radius: Radius.circular(3),
+                            child: SingleChildScrollView(
+                              child: _buildModernOptionsGrid(currentQuestion),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              
+              // Navigation Bar
+              Container(
+                padding: EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    // Previous Button
+                    Expanded(
+                      child: AnimatedContainer(
+                        duration: Duration(milliseconds: 300),
+                        height: 50,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Color(0xFFE53E3E),
+                              Color(0xFFC53030),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0xFFE53E3E).withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ElevatedButton(
+                          onPressed: currentQuestionIndex > 0 ? goToPreviousQuestion : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.white,
+                            shadowColor: Colors.transparent,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.arrow_back, size: 18),
+                              SizedBox(width: 8),
+                              Text("Previous"),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                    // Right Stars
-                    Positioned(
-                      right: 10,
-                      top: -5,
-                      child: Text("✦", style: TextStyle(color: Color(0xFFFFD700), fontSize: 20)),
-                    ),
-                    Positioned(
-                      right: -15,
-                      bottom: -5,
-                      child: Text("✦", style: TextStyle(color: Color(0xFFFFD700), fontSize: 20)),
-                    ),
-                    // Question Mark
-                    Positioned(
-                      right: 20,
-                      top: 0,
-                      child: Text("?", style: TextStyle(color: Colors.white, fontSize: 24)),
+                    SizedBox(width: 16),
+                    // Next Button
+                    Expanded(
+                      child: AnimatedContainer(
+                        duration: Duration(milliseconds: 300),
+                        height: 50,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Color(0xFF38A169),
+                              Color(0xFF2F855A),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0xFF38A169).withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ElevatedButton(
+                          onPressed: selectedAnswers[currentQuestionIndex].isNotEmpty 
+                              ? goToNextQuestion 
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: Colors.white,
+                            shadowColor: Colors.transparent,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text("Next"),
+                              SizedBox(width: 8),
+                              Icon(Icons.arrow_forward, size: 18),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                SizedBox(height: 50),
-                // Question Text (optional - not in template but helpful)
-                Container(
-                  padding: EdgeInsets.all(20),
-                  margin: EdgeInsets.symmetric(horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    currentQuestion.questionText,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 40),
-                // Options Grid
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20),
-                    child: _buildOptionsGrid(currentQuestion),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildOptionButton({required String label, required String text, required String answer}) {
-    final isSelected = selectedAnswers[currentQuestionIndex] == answer;
-
-    return GestureDetector(
-      onTap: () => selectAnswer(answer),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8, offset: Offset(0, 4)),
-          ],
-        ),
-        child: Stack(
-          children: [
-            Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 15, vertical: 15),
-                child: Text(
-                  "$label: $text",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xFFB322E0),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: -8,
-              top: -8,
-              child: Text("✦", style: TextStyle(color: Color(0xFFFFD700), fontSize: 20)),
-            ),
-            if (isSelected)
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Color(0xFFB322E0).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOptionsGrid(Question question) {
+  Widget _buildModernOptionsGrid(Question question) {
     final optionCount = question.options.length;
 
-    // For 5 options (1-5 rating)
+    // For star rating questions (questions 1-4)
+    if (question.isStarRating) {
+      return Column(
+        children: [
+          SizedBox(height: 20),
+          Text(
+            "Rate your interest level:",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[600],
+            ),
+          ),
+          SizedBox(height: 15),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(5, (index) {
+              return GestureDetector(
+                onTap: () => selectAnswer((index + 1).toString()),
+                child: Column(
+                  children: [
+                    Icon(
+                      (int.tryParse(selectedAnswers[currentQuestionIndex] ?? "0") ?? 0) > index 
+                          ? Icons.star 
+                          : Icons.star_border,
+                      size: 40,
+                      color: Colors.amber,
+                    ),
+                    SizedBox(height: 5),
+                    Text(
+                      (index + 1).toString(),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ),
+          SizedBox(height: 10),
+          Text(
+            selectedAnswers[currentQuestionIndex].isEmpty 
+                ? "Tap a star to rate"
+                : "You rated: ${selectedAnswers[currentQuestionIndex]} star${selectedAnswers[currentQuestionIndex] == "1" ? "" : "s"}",
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      );
+    }
+
+    // For 5 options (1-5 rating) - non-star questions
     if (optionCount == 5) {
       return Column(
         children: [
-          Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: _buildOptionButton(
-                          label: "A",
-                          text: question.options[0],
-                          answer: question.options[0],
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      Expanded(
-                        child: _buildOptionButton(
-                          label: "B",
-                          text: question.options[1],
-                          answer: question.options[1],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: _buildOptionButton(
-                          label: "C",
-                          text: question.options[2],
-                          answer: question.options[2],
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      Expanded(
-                        child: _buildOptionButton(
-                          label: "D",
-                          text: question.options[3],
-                          answer: question.options[3],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          _buildModernOptionButton(
+            label: "A",
+            text: question.options[0],
+            answer: question.options[0],
           ),
-          SizedBox(height: 20),
-          SizedBox(
-            height: 80,
-            child: _buildOptionButton(
-              label: "E",
-              text: question.options[4],
-              answer: question.options[4],
-            ),
+          SizedBox(height: 12),
+          _buildModernOptionButton(
+            label: "B",
+            text: question.options[1],
+            answer: question.options[1],
+          ),
+          SizedBox(height: 12),
+          _buildModernOptionButton(
+            label: "C",
+            text: question.options[2],
+            answer: question.options[2],
+          ),
+          SizedBox(height: 12),
+          _buildModernOptionButton(
+            label: "D",
+            text: question.options[3],
+            answer: question.options[3],
+          ),
+          SizedBox(height: 12),
+          _buildModernOptionButton(
+            label: "E",
+            text: question.options[4],
+            answer: question.options[4],
           ),
         ],
       );
@@ -532,19 +773,79 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
       return Column(
         children: List.generate(optionCount, (index) {
           final letters = ['A', 'B', 'C'];
-          return Expanded(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 5),
-              child: _buildOptionButton(
-                label: letters[index],
-                text: question.options[index],
-                answer: question.options[index],
-              ),
+          return Padding(
+            padding: EdgeInsets.only(bottom: index < optionCount - 1 ? 12 : 0),
+            child: _buildModernOptionButton(
+              label: letters[index],
+              text: question.options[index],
+              answer: question.options[index],
             ),
           );
         }),
       );
     }
+  }
+
+  Widget _buildModernOptionButton({required String label, required String text, required String answer}) {
+    final isSelected = selectedAnswers[currentQuestionIndex] == answer;
+
+    return GestureDetector(
+      onTap: () => selectAnswer(answer),
+      child: AnimatedContainer(
+        duration: Duration(milliseconds: 200),
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? Color(0xFF667EEA).withValues(alpha: 0.1) : Color(0xFFF8F9FA),
+          border: Border.all(
+            color: isSelected ? Color(0xFF667EEA) : Color(0xFFE2E8F0),
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            // Option Letter
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: isSelected ? Color(0xFF667EEA) : Color(0xFFE2E8F0),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Color(0xFF64748B),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: 16),
+            // Option Text
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: isSelected ? Color(0xFF667EEA) : Color(0xFF2D3748),
+                  fontSize: 16,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                ),
+              ),
+            ),
+            // Check Icon for Selected
+            if (isSelected)
+              Icon(
+                Icons.check_circle,
+                color: Color(0xFF667EEA),
+                size: 24,
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _resetQuestionnaire() {
@@ -556,6 +857,13 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
   }
 
   void _showResultsDialog(BuildContext context, String predictedModule, double confidence, Map<String, double> allScores) {
+    // Create the complete results map
+    Map<String, dynamic> completeResults = {
+      'predictedModule': predictedModule,
+      'confidence': confidence,
+      'allScores': allScores,
+    };
+    
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -580,7 +888,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
                   ),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 20),
+                SizedBox(height: 8),
                 Text(
                   'Recommended Path: ${predictedModule.toUpperCase()}',
                   style: TextStyle(
@@ -590,7 +898,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
                   ),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 10),
+                SizedBox(height: 8),
                 Text(
                   'Confidence: ${(confidence * 100).toStringAsFixed(1)}%',
                   style: TextStyle(
@@ -599,7 +907,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
                   ),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 20),
+                SizedBox(height: 8),
                 Text(
                   'All Module Scores:',
                   style: TextStyle(
@@ -608,7 +916,7 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
                     color: Colors.black87,
                   ),
                 ),
-                SizedBox(height: 10),
+                SizedBox(height: 8),
                 ...allScores.entries.map((entry) => Padding(
                   padding: EdgeInsets.symmetric(vertical: 4),
                   child: Row(
@@ -655,9 +963,13 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
                       onPressed: () {
                         print('Continue button pressed');
                         print('Navigating to GameMenuNew with module: $predictedModule');
+                        print('Complete results: $completeResults');
                         Navigator.of(context).pop();
                         Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: (context) => GameMenuNew(predictedModule: predictedModule)),
+                          MaterialPageRoute(builder: (context) => GameMenuNew(
+                            questionnaireResults: completeResults,
+                            predictedModule: predictedModule,
+                          )),
                         );
                         print('Navigation to GameMenuNew completed');
                       },

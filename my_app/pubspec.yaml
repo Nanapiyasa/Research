@@ -16,7 +16,7 @@ dependencies:
   flutter_tts: ^4.0.0          # Text-to-speech for spoken instructions and feedback
   confetti: ^0.7.0             # Confetti celebrations on correct answers
   cached_network_image: ^3.3.0 # Efficient loading and caching of network images
-  tflite_flutter: ^0.9.0     # TensorFlow Lite for on-device ML inference
+  tflite_flutter: ^0.12.1     # TensorFlow Lite for on-device ML inference
 
 dev_dependencies:
   flutter_test:

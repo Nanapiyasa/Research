@@ -3,13 +3,16 @@ import 'package:flutter/services.dart';
 import 'questionnaire_screen.dart';
 import 'auth_service.dart';
 import 'Vocational/chefLv01.dart';
+import 'loading_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  // Set orientation to portrait only
+  // Allow both orientations (games will set their preferred orientation)
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
   ]);
   runApp(MyApp());
 }
@@ -367,11 +370,11 @@ class GamePanelCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Responsive sizing based on screen width
-    final iconSize = isVertical ? screenWidth * 0.12 : screenWidth * 0.08;
+    final iconSize = isVertical ? screenWidth * 0.19 : screenWidth * 0.16;
     final padding = screenWidth * 0.03;
     final borderRadius = screenWidth * 0.03;
-    final titleFontSize = isVertical ? screenWidth * 0.05 : screenWidth * 0.022;
-    final descriptionFontSize = isVertical ? screenWidth * 0.04 : screenWidth * 0.015;
+    final titleFontSize = isVertical ? screenWidth * 0.05 : screenWidth * 0.035;
+    final descriptionFontSize = isVertical ? screenWidth * 0.04 : screenWidth * 0.025;
     
     return InkWell(
       borderRadius: BorderRadius.circular(borderRadius),
