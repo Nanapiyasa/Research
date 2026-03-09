@@ -167,8 +167,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     ).toList();
     
     incorrectFruits.shuffle();
-    for (int i = 0; i < 3 && i < incorrectFruits.length; i++) {
-      options.add(incorrectFruits[i]);
+    for (int i = 0; i < 3; i++) {
+      if (i < incorrectFruits.length) {
+        options.add(incorrectFruits[i]);
+      }
     }
     
     options.shuffle();
@@ -390,7 +392,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       children: [
                         // Top bar with title - Tea game style
                         Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+                          margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 4),
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
                             color: Colors.orange,
@@ -468,15 +470,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Text(
-                                      'Find the Ripe Fruit',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 20),
+                                    const SizedBox(height: 5),
                                     _buildQuestionCard(),
                                   ],
                                 ),
@@ -497,7 +491,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       children: [
                         // Top bar with title - Tea game style
                         Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+                          margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 4),
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
                             color: Colors.orange,
@@ -583,7 +577,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    const SizedBox(height: 30),
+                                    const SizedBox(height: 10),
                                     _buildQuestionCard(),
                                   ],
                                 ),
@@ -650,15 +644,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Find the ripe fruit:',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 15),
             Container(
               width: 120,
               height: 120,
@@ -674,23 +659,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   errorBuilder: (context, error, stackTrace) {
                     return Container(
                       color: Colors.grey[200],
-                      child: const Center(
-                        child: Icon(Icons.image, size: 50, color: Colors.grey),
-                      ),
+                      child: const Icon(Icons.image, size: 40, color: Colors.grey),
                     );
                   },
                 ),
               ),
-            ),
-            const SizedBox(height: 15),
-            Text(
-              targetFruit.name,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -703,14 +676,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       padding: const EdgeInsets.all(20),
       child: GridView.builder(
         shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
+        physics: const ScrollPhysics(), // Enable scrolling
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2, // Always 2x2 grid
           mainAxisSpacing: 15,
           crossAxisSpacing: 15,
           childAspectRatio: 0.8,
         ),
-        itemCount: options.length,
+        itemCount: math.min(4, options.length), // Ensure max 4 items for 2x2 grid
         itemBuilder: (context, index) {
           final fruit = options[index];
           final isSelected = selectedFruitName == fruit.name;

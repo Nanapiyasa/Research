@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:confetti/confetti.dart';
+import 'fruit_match_level3.dart';
 
 class FruitMatchLevel2Game extends StatelessWidget {
   const FruitMatchLevel2Game({Key? key}) : super(key: key);
@@ -209,9 +210,16 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
                 }
               });
               
+              // Show step completion popup
+              _showStepCompleteDialog();
+              
               // Check if all 3 steps are completed
               if (currentStep > 3) {
-                _showLevelCompleteDialog();
+                Future.delayed(const Duration(milliseconds: 2000), () {
+                  if (mounted) {
+                    _showLevelCompleteDialog();
+                  }
+                });
               }
             }
           });
@@ -220,33 +228,190 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
     }
   }
 
+  void _showStepCompleteDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(25),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.orange, Colors.deepOrange],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  size: 50,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 15),
+              const Text(
+                'Step Complete!',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Great job! Fruit uncovered successfully!',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white.withOpacity(0.9),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.orange,
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  elevation: 5,
+                ),
+                child: const Text(
+                  'Continue',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showLevelCompleteDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Level 2 Complete!'),
-        content: Text('Congratulations! You prepared the fruit salad with a score of $score!'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() {
-                score = 0;
-                lives = 3;
-                currentStep = 1;
-                _initializeFruits();
-              });
-            },
-            child: const Text('Play Again'),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(25),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF4CAF50), Color(0xFF45A049)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-        ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: const Icon(
+                  Icons.emoji_events,
+                  size: 50,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 15),
+              const Text(
+                'Level 2 Complete!',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Congratulations! You prepared the fruit salad with a score of $score!',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white.withOpacity(0.9),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const FruitMatchLevel3Game(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Color(0xFF4CAF50),
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  elevation: 5,
+                ),
+                child: const Text(
+                  'Awesome!',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   @override
   void dispose() {
+    // Reset orientation to portrait only when leaving
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+    
     _knifeAnimationController.dispose();
     _continuousKnifeAnimationController.dispose();
     _instructionAnimationController.dispose();
@@ -329,7 +494,7 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    '🥗 Fruit Salad Level 2',
+                    'Fruit Salad Level 2',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -350,11 +515,7 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    'In this level, you will prepare fruit salad!\n\n'
-                    '👉 Tap the knife to uncover covered fruits\n'
-                    '👉 Each tap reveals one fruit\n'
-                    '👉 Complete all 3 steps to finish\n'
-                    '👉 Score points for each fruit uncovered!',
+                    'Tap the knife to uncover covered fruits',
                     style: TextStyle(
                       fontSize: 18,
                       color: Colors.white,
@@ -481,7 +642,7 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
                     children: [
                       // Instructions
                       Container(
-                        margin: const EdgeInsets.all(20),
+                        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.9),
@@ -492,7 +653,7 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
                             const Text(
                               'Prepare Fruit Salad',
                               style: TextStyle(
-                                fontSize: 18,
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black87,
                               ),
@@ -604,7 +765,7 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
                       Expanded(
                         flex: 1,
                         child: Container(
-                          margin: const EdgeInsets.all(20),
+                          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.9),
@@ -616,7 +777,7 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
                               const Text(
                                 'Prepare Fruit Salad',
                                 style: TextStyle(
-                                  fontSize: 24,
+                                  fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.black87,
                                 ),
@@ -665,10 +826,10 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: isSmallScreen ? 2 : 3, // Adjust for 4 items
-          mainAxisSpacing: 15,
-          crossAxisSpacing: 15,
-          childAspectRatio: 1.0,
+          crossAxisCount: isSmallScreen ? 2 : 3, // Back to original layout
+          mainAxisSpacing: 20,
+          crossAxisSpacing: 20,
+          childAspectRatio: 0.7, // Even larger images
         ),
         itemCount: currentDisplayFruits.length,
         itemBuilder: (context, index) {
@@ -699,7 +860,7 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
                     borderRadius: BorderRadius.circular(12),
                     child: Image.asset(
                       fruit.assetPath,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
                           color: Colors.grey[200],
@@ -712,7 +873,7 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
               ),
             );
           } else {
-            // Fruit item - show covered or uncovered state
+            // Fruit item - show full image without box
             String assetPath = fruit.assetPath;
             if (fruit.isUncovered) {
               // Change to uncovered image
@@ -725,33 +886,17 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
               }
             }
             
-            return Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(
-                  color: fruit.isUncovered ? Colors.green : Colors.grey,
-                  width: 2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 5,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(13),
-                child: Image.asset(
-                  assetPath,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey[200],
-                      child: const Icon(Icons.image, size: 40, color: Colors.grey),
-                    );
-                  },
-                ),
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: Image.asset(
+                assetPath,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.image, size: 40, color: Colors.grey),
+                  );
+                },
               ),
             );
           }

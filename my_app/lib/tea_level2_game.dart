@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
-import 'dart:ui';
-import 'dart:math' as math;
 import 'package:confetti/confetti.dart';
-import 'tea_level2_game.dart';
 
-class TeaLevel1Game extends StatefulWidget {
-  const TeaLevel1Game({Key? key}) : super(key: key);
+class TeaLevel2Game extends StatefulWidget {
+  const TeaLevel2Game({Key? key}) : super(key: key);
 
   @override
-  _TeaLevel1GameState createState() => _TeaLevel1GameState();
+  _TeaLevel2GameState createState() => _TeaLevel2GameState();
 }
 
-class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateMixin {
+class _TeaLevel2GameState extends State<TeaLevel2Game> with TickerProviderStateMixin {
+  // Force landscape immediately
+  _TeaLevel2GameState() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
   // Game variables
   List<TeaIngredient> availableIngredients = [];
   List<String> droppedIngredients = [];
@@ -27,20 +31,20 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
   late ConfettiController _confettiController;
   
   // Animation controller
-  late AnimationController _cupAnimationController;
-  late Animation<double> _cupScaleAnimation;
+  late AnimationController _kettleAnimationController;
+  late Animation<double> _kettleScaleAnimation;
   
-  // Pop animation for cup leaves
+  // Pop animation for tap
   late AnimationController _popController;
   late Animation<double> _popAnimation;
   
-  // Cup state
-  String currentCupImage = 'assets/Cup.png';
+  // Tap state
+  String currentTapImage = 'assets/kitchen1.jpg'; // Will be replaced with tap image
   
   // Game step tracking
   int currentStep = 0;
-  List<String> correctOrder = ['Tea Leaves', 'Ginger']; // Only 2 steps for level 1
-  String currentMessage = 'Step 1: Drag tea leaves to the cup';
+  List<String> correctOrder = ['Kettle']; // Only 1 step for level 2
+  String currentMessage = 'Step 1: Drag the kettle to the tap to fill water';
   bool gameStarted = false;
   bool isUnderstood = false;
   
@@ -62,21 +66,21 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
       duration: const Duration(seconds: 3),
     );
     
-    // Initialize cup animation
-    _cupAnimationController = AnimationController(
+    // Initialize kettle animation
+    _kettleAnimationController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
     
-    _cupScaleAnimation = Tween<double>(
+    _kettleScaleAnimation = Tween<double>(
       begin: 1.0,
       end: 1.1,
     ).animate(CurvedAnimation(
-      parent: _cupAnimationController,
+      parent: _kettleAnimationController,
       curve: Curves.elasticOut,
     ));
     
-    // Initialize pop animation for cup leaves
+    // Initialize pop animation for tap
     _popController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -95,24 +99,25 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
     
     // Simple ingredient initialization
     availableIngredients = [
-      TeaIngredient(name: 'Ginger', assetPath: 'assets/Ginger.png'),
-      TeaIngredient(name: 'Tea Leaves', assetPath: 'assets/cup leaves.png'),
+      TeaIngredient(name: 'Kettle', assetPath: 'assets/Empty_Kettle.png'),
     ];
     
-    availableIngredients.shuffle();
+    print('DEBUG: Loading kettle from assets/Empty_Kettle.png');
+    
+    // Don't shuffle for single ingredient
     droppedIngredients = [];
-    currentCupImage = 'assets/Cup.png';
+    currentTapImage = 'assets/Tap.png';
     isGameComplete = false;
     score = 0;
     
-    print('Tea Level 1 initialized with ${availableIngredients.length} ingredients');
+    print('Tea Level 2 initialized with ${availableIngredients.length} ingredients');
     
     // Start timer
     _startTimer();
   }
   
   void _startPopAnimation() {
-    if (currentStep == 0) { // Only animate for tea leaves step
+    if (currentStep == 0) { // Only animate for kettle step
       _popController.repeat(reverse: true);
     }
   }
@@ -143,22 +148,16 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
         availableIngredients.removeWhere((ingredient) => ingredient.name == ingredientName);
         score += 10;
         
-        // Update cup image based on step
+        // Update tap image based on step
         if (currentStep == 0) {
-          currentCupImage = 'assets/cup leaves.png';
-          currentMessage = 'Great! Now add ginger to the cup';
-          _stopPopAnimation(); // Stop pop animation after tea leaves dropped
-        } else if (currentStep == 1) {
-          currentCupImage = 'assets/cup leaves.png'; // Still show tea leaves with ginger
-          currentMessage = 'Excellent! Now add milk to the cup';
-        } else if (currentStep == 2) {
-          currentCupImage = 'assets/cup leaves.png'; // Still show tea leaves with ginger and milk
-          currentMessage = 'Perfect! Finally add sugar to complete the tea';
+          currentTapImage = 'assets/kitchen1.jpg'; // Will be replaced with filled kettle image
+          currentMessage = 'Great! Kettle is filled with water!';
+          _stopPopAnimation(); // Stop pop animation after kettle dropped
         }
         
-        // Animate cup
-        _cupAnimationController.forward().then((_) {
-          _cupAnimationController.reverse();
+        // Animate tap
+        _kettleAnimationController.forward().then((_) {
+          _kettleAnimationController.reverse();
         });
         
         // Trigger confetti
@@ -170,7 +169,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
         // Check if game is complete
         if (currentStep >= correctOrder.length) {
           isGameComplete = true;
-          currentMessage = 'Tea Making Complete! Well done!';
+          currentMessage = 'Water Filling Complete! Well done!';
           _showLevelCompleteDialog();
         }
       });
@@ -179,37 +178,6 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
       setState(() {
         currentMessage = 'Not yet! Please add ${_getCurrentRequiredIngredient()} first';
       });
-    }
-  }
-  
-  void _initializeIngredients() {
-    try {
-      availableIngredients = [
-        TeaIngredient(name: 'Ginger', assetPath: 'assets/Ginger.png'),
-        TeaIngredient(name: 'Milk', assetPath: 'assets/Milk.png'),
-        TeaIngredient(name: 'Sugar', assetPath: 'assets/sugar.png'),
-        TeaIngredient(name: 'Tea Leaves', assetPath: 'assets/cup leaves.png'),
-      ];
-      
-      // Shuffle for variety
-      availableIngredients.shuffle();
-      droppedIngredients = [];
-      currentCupImage = 'assets/Cup.png';
-      isGameComplete = false;
-      score = 0;
-      
-      print('Initialized ${availableIngredients.length} ingredients');
-      for (var ingredient in availableIngredients) {
-        print('Ingredient: ${ingredient.name} - ${ingredient.assetPath}');
-      }
-    } catch (e) {
-      print('Error in _initializeIngredients: $e');
-      // Set fallback empty list
-      availableIngredients = [];
-      droppedIngredients = [];
-      currentCupImage = 'assets/Cup.png';
-      isGameComplete = false;
-      score = 0;
     }
   }
   
@@ -256,7 +224,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
               ),
               const SizedBox(height: 15),
               const Text(
-                'Level 1 Complete!',
+                'Level 2 Complete!',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 24,
@@ -275,19 +243,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
-                  // Force landscape orientation before navigating
-                  SystemChrome.setPreferredOrientations([
-                    DeviceOrientation.landscapeLeft,
-                    DeviceOrientation.landscapeRight,
-                  ]);
-                  
                   Navigator.of(context).pop();
-                  // Navigate to next level or back to menu
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                      builder: (context) => const TeaLevel2Game(),
-                    ),
-                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
@@ -298,7 +254,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
                   ),
                 ),
                 child: const Text(
-                  'Next Level',
+                  'Continue',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -311,17 +267,19 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
       ),
     );
   }
-
+  
   @override
   void dispose() {
-    // Keep landscape orientation for next level
+    // Reset orientation to all orientations when leaving
     SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
     
     if (_animationsInitialized) {
-      _cupAnimationController.dispose();
+      _kettleAnimationController.dispose();
       _popController.dispose();
     }
     _confettiController.dispose();
@@ -329,12 +287,12 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
     super.dispose();
   }
   
-  Widget _buildCupContent() {
+  Widget _buildTapContent() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Text(
-          'Tea Making',
+          'Water Tap',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -343,7 +301,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
         ),
         const SizedBox(height: 15),
         if (currentStep == 0)
-          // Pop animation for tea leaves step
+          // Pop animation for kettle step
           AnimatedBuilder(
             animation: _popAnimation,
             builder: (context, child) {
@@ -354,17 +312,17 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
                   height: 120,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.orange, width: 2),
+                    border: Border.all(color: Colors.blue, width: 2),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(10),
                     child: Image.asset(
-                      currentCupImage,
+                      currentTapImage,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
                           color: Colors.grey[200],
-                          child: Icon(Icons.local_cafe, size: 30, color: Colors.grey),
+                          child: Icon(Icons.water_drop, size: 30, color: Colors.grey),
                         );
                       },
                     ),
@@ -374,23 +332,23 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
             },
           )
         else
-          // Normal cup display for other steps
+          // Normal tap display for other steps
           Container(
             width: 120,
             height: 120,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.orange, width: 2),
+              border: Border.all(color: Colors.blue, width: 2),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: Image.asset(
-                currentCupImage,
+                currentTapImage,
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
                     color: Colors.grey[200],
-                    child: Icon(Icons.local_cafe, size: 30, color: Colors.grey),
+                    child: Icon(Icons.water_drop, size: 30, color: Colors.grey),
                   );
                 },
               ),
@@ -410,6 +368,12 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
   
   @override
   Widget build(BuildContext context) {
+    // Force landscape orientation at build time
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    
     return Scaffold(
       body: Stack(
         children: [
@@ -446,7 +410,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'Tea Making',
+                        'Water Filling',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -517,7 +481,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
                             child: const Icon(
                               Icons.info,
                               color: Colors.white,
-                              size: 20, // Reduced from 24 to 20
+                              size: 20,
                             ),
                           );
                         },
@@ -528,7 +492,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
                           currentMessage,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 14, // Reduced from 16 to 14
+                            fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -538,7 +502,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
                           onPressed: () {
                             setState(() {
                               isUnderstood = true;
-                              currentMessage = 'Great! Now start making tea by dragging ingredients';
+                              currentMessage = 'Great! Now drag the kettle to the tap to fill water';
                               gameStarted = true;
                             });
                             
@@ -550,7 +514,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: Colors.blue,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // Reduced padding
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -559,7 +523,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
                             'Understood',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 12, // Reduced from default
+                              fontSize: 12,
                             ),
                           ),
                         ),
@@ -571,7 +535,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
                 Expanded(
                   child: Row(
                     children: [
-                      // Left side - Cup
+                      // Left side - Tap (drop zone)
                       Expanded(
                         flex: 1,
                         child: Container(
@@ -587,7 +551,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
                                   color: Colors.white.withOpacity(0.9),
                                   borderRadius: BorderRadius.circular(15),
                                   border: Border.all(
-                                    color: candidateData.isNotEmpty ? Colors.green : Colors.grey,
+                                    color: candidateData.isNotEmpty ? Colors.blue : Colors.grey,
                                     width: 3,
                                   ),
                                   boxShadow: [
@@ -600,17 +564,17 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
                                 ),
                                 child: _animationsInitialized 
                                   ? ScaleTransition(
-                                      scale: _cupScaleAnimation,
-                                      child: _buildCupContent(),
+                                      scale: _kettleScaleAnimation,
+                                      child: _buildTapContent(),
                                     )
-                                  : _buildCupContent(),
+                                  : _buildTapContent(),
                               );
                             },
                           ),
                         ),
                       ),
                       
-                      // Right side - Ingredients
+                      // Right side - Kettle (draggable)
                       Expanded(
                         flex: 1,
                         child: Container(
@@ -623,7 +587,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
                           child: Column(
                             children: [
                               const Text(
-                                'Available Ingredients',
+                                'Available Items',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -654,7 +618,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
                                             height: 80,
                                             decoration: BoxDecoration(
                                               borderRadius: BorderRadius.circular(15),
-                                              border: Border.all(color: Colors.orange, width: 2),
+                                              border: Border.all(color: Colors.blue, width: 2),
                                               color: Colors.white,
                                             ),
                                             child: ClipRRect(
@@ -666,7 +630,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
                                                   print('Error loading ${ingredient.assetPath}: $error');
                                                   return Container(
                                                     color: Colors.grey[200],
-                                                    child: const Icon(Icons.image, size: 30, color: Colors.grey),
+                                                    child: const Icon(Icons.water_drop, size: 30, color: Colors.grey),
                                                   );
                                                 },
                                               ),
@@ -702,7 +666,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
                                                   print('Error loading ${ingredient.assetPath}: $error');
                                                   return Container(
                                                     color: Colors.grey[200],
-                                                    child: const Icon(Icons.image, size: 30, color: Colors.grey),
+                                                    child: const Icon(Icons.water_drop, size: 30, color: Colors.grey),
                                                   );
                                                 },
                                               ),
@@ -767,7 +731,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
               blastDirectionality: BlastDirectionality.explosive,
               shouldLoop: false,
               colors: const [
-                Colors.orange,
+                Colors.blue,
                 Colors.green,
                 Colors.yellow,
                 Colors.purple,
