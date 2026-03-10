@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'Vocational/chefLv01.dart';
+import 'Vocational/retailLv01.dart';
+import 'Vocational/cleaningLv01.dart';
 import 'welcome_screen.dart';
 
 class GameMenuNew extends StatefulWidget {
@@ -192,8 +194,16 @@ class _GameMenuNewState extends State<GameMenuNew> {
             context,
             MaterialPageRoute(builder: (context) => WelcomeScreen()),
           );
-        } else {
-          _showGameDialog(game);
+        } else if (game.title == 'Retail') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => RetailWelcomeScreen()),
+          );
+        } else if (game.title == 'Cleaning') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => CleaningWelcomeScreen()),
+          );
         }
       },
       child: Container(

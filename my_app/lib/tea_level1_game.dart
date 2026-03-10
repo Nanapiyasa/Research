@@ -314,8 +314,10 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
 
   @override
   void dispose() {
-    // Keep landscape orientation for next level
+    // Reset to portrait orientation when exiting the game
     SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
@@ -636,9 +638,9 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
                                   child: GridView.builder(
                                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                       crossAxisCount: 2,
-                                      mainAxisSpacing: 15,
+                                      childAspectRatio: 1.8, // Reverted back to original
                                       crossAxisSpacing: 15,
-                                      childAspectRatio: 1.0,
+                                      mainAxisSpacing: 15,
                                     ),
                                     itemCount: availableIngredients.length,
                                     itemBuilder: (context, index) {

@@ -270,12 +270,10 @@ class _TeaLevel2GameState extends State<TeaLevel2Game> with TickerProviderStateM
   
   @override
   void dispose() {
-    // Reset orientation to all orientations when leaving
+    // Reset to portrait orientation when exiting the game
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
     ]);
     
     if (_animationsInitialized) {
