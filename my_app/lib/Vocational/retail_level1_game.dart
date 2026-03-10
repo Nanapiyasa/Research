@@ -10,7 +10,7 @@ class RetailLevel1Game extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Retail Categorization Game Level 1',
+      title: 'Retail Categorization Game',
       theme: ThemeData(
         primarySwatch: Colors.orange,
         useMaterial3: true,
@@ -58,35 +58,35 @@ class RetailItem {
 class _RetailGameScreenState extends State<RetailGameScreen> with TickerProviderStateMixin {
   // Game variables
   late List<RetailItem> allItems;
-  late RetailItem targetItem;
-  late List<RetailItem> options;
+  late List<RetailItem> availableItems;
+  late List<RetailItem> droppedItems;
+  String? draggedItem;
+  String currentCategory = 'Fruits';
   int score = 0;
   int attempts = 0;
-  int levelScoreLimit = 50; // Lower score limit for level 1
-  bool isAnswered = false;
-  String? selectedItemName;
-  bool isCorrect = false;
-  late AnimationController _scaleController;
-  late AnimationController _questionAnimationController;
-  late Animation<double> _questionScaleAnimation;
+  int levelScoreLimit = 40; // 4 steps * 10 points each
+  bool isGameComplete = false;
+  int currentStep = 0;
+  List<String> categories = ['Fruits', 'Dairy', 'Snacks', 'Drinks'];
+  String currentMessage = 'Step 1: Drag fruits to the drop area';
+  bool gameStarted = false;
+  bool isUnderstood = false;
   
   // Timer variables
   int _seconds = 0;
   Timer? _timer;
   
-  // Animation for level complete dialog
-  late AnimationController _dialogAnimationController;
-  late Animation<double> _dialogScaleAnimation;
+  // Animation controllers
+  late AnimationController _dropAnimationController;
+  late Animation<double> _dropAnimation;
+  late AnimationController _popController;
+  late Animation<double> _popAnimation;
   
   // Confetti controller
   late ConfettiController _confettiController;
   
-  // Game step tracking
-  int currentStep = 0;
-  List<String> categories = ['Fruits', 'Dairy', 'Snacks', 'Drinks'];
-  String currentCategory = 'Fruits';
-  bool gameStarted = false;
-  bool isUnderstood = false;
+  // Animation state
+  bool _animationsInitialized = false;
 
   @override
   void initState() {
@@ -96,94 +96,135 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
     // Initialize confetti controller
     _confettiController = ConfettiController(duration: const Duration(seconds: 2));
     
-    // Initialize dialog animation controller
-    _dialogAnimationController = AnimationController(
+    // Initialize animation controllers
+    _dropAnimationController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
-    
-    _dialogScaleAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
+    _dropAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.2,
     ).animate(CurvedAnimation(
-      parent: _dialogAnimationController,
+      parent: _dropAnimationController,
       curve: Curves.elasticOut,
     ));
     
-    _scaleController = AnimationController(
-      duration: const Duration(milliseconds: 500),
+    _popController = AnimationController(
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    _questionAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    );
-    
-    _questionScaleAnimation = Tween<double>(
+    _popAnimation = Tween<double>(
       begin: 1.0,
-      end: 1.05,
+      end: 1.1,
     ).animate(CurvedAnimation(
-      parent: _questionAnimationController,
+      parent: _popController,
       curve: Curves.elasticInOut,
     ));
     
-    _questionAnimationController.repeat(reverse: true);
+    _animationsInitialized = true;
     _startTimer();
   }
   
   void _initializeGame() {
-    // All retail items (simpler for level 1)
+    // All retail items
     allItems = [
       // Fruits
       RetailItem(name: 'Orange', assetPath: 'assets/Orange.png', category: 'Fruits'),
       RetailItem(name: 'Pineapple', assetPath: 'assets/Pine apple.png', category: 'Fruits'),
       RetailItem(name: 'Banana', assetPath: 'assets/banana.png', category: 'Fruits'),
+      RetailItem(name: 'Apple', assetPath: 'assets/kitchen1.jpg', category: 'Fruits'),
+      RetailItem(name: 'Grapes', assetPath: 'assets/kitchen1.jpg', category: 'Fruits'),
       
       // Dairy
       RetailItem(name: 'Butter', assetPath: 'assets/Butter.png', category: 'Dairy'),
       RetailItem(name: 'Cheese', assetPath: 'assets/Cheese.png', category: 'Dairy'),
       RetailItem(name: 'Milk Bottle', assetPath: 'assets/Milk.png', category: 'Dairy'),
+      RetailItem(name: 'Yogurt', assetPath: 'assets/kitchen1.jpg', category: 'Dairy'),
+      RetailItem(name: 'Ice Cream', assetPath: 'assets/kitchen1.jpg', category: 'Dairy'),
       
       // Snacks
       RetailItem(name: 'Chocolate', assetPath: 'assets/Chocolate.png', category: 'Snacks'),
       RetailItem(name: 'Onion Chips', assetPath: 'assets/Onion chips.png', category: 'Snacks'),
       RetailItem(name: 'Garlic Chips', assetPath: 'assets/Garlic chips.png', category: 'Snacks'),
+      RetailItem(name: 'Cookies', assetPath: 'assets/kitchen1.jpg', category: 'Snacks'),
+      RetailItem(name: 'Popcorn', assetPath: 'assets/kitchen1.jpg', category: 'Snacks'),
       
       // Drinks
       RetailItem(name: 'Energy Drink', assetPath: 'assets/Energy drink.png', category: 'Drinks'),
       RetailItem(name: 'Soda Bottle', assetPath: 'assets/Soda bottle.png', category: 'Drinks'),
       RetailItem(name: 'Coke Bottle', assetPath: 'assets/Coke bottle.png', category: 'Drinks'),
+      RetailItem(name: 'Juice Box', assetPath: 'assets/kitchen1.jpg', category: 'Drinks'),
+      RetailItem(name: 'Water Bottle', assetPath: 'assets/kitchen1.jpg', category: 'Drinks'),
     ];
     
-    _setupNewQuestion();
+    _setupCurrentStep();
   }
   
-  void _setupNewQuestion() {
+  void _setupCurrentStep() {
     // Get items for current category
     final categoryItems = allItems.where((item) => item.category == currentCategory).toList();
-    
-    if (categoryItems.isEmpty) return;
-    
-    // Select random target item from current category
     final random = math.Random();
-    targetItem = categoryItems[random.nextInt(categoryItems.length)];
+    categoryItems.shuffle(random);
     
-    // Get wrong options (items from other categories)
-    final wrongOptions = allItems.where((item) => item.category != currentCategory).toList();
-    wrongOptions.shuffle(random);
+    // Select 4 items to drag (2 from current category, 2 from other categories)
+    final currentCategoryItems = categoryItems.take(2).toList();
+    final otherCategoryItems = allItems
+        .where((item) => item.category != currentCategory)
+        .toList()..shuffle(random);
+    final mixedItems = otherCategoryItems.take(2).toList();
     
-    // Select 2 wrong options (easier than level 2)
-    final selectedWrong = wrongOptions.take(2).toList();
-    
-    // Combine target with wrong options and shuffle
-    options = [targetItem, ...selectedWrong];
-    options.shuffle(random);
+    availableItems = [...currentCategoryItems, ...mixedItems];
+    availableItems.shuffle(random);
+    droppedItems = [];
     
     setState(() {
-      isAnswered = false;
-      selectedItemName = null;
-      isCorrect = false;
+      currentMessage = 'Step ${currentStep + 1}: Drag ${currentCategory.toLowerCase()} to the drop area';
     });
+  }
+  
+  void _handleItemDrop(String itemName) {
+    final item = availableItems.firstWhere((item) => item.name == itemName);
+    
+    if (item.category == currentCategory) {
+      setState(() {
+        droppedItems.add(item);
+        availableItems.removeWhere((i) => i.name == itemName);
+        score += 10;
+        
+        // Animate drop
+        _dropAnimationController.forward().then((_) {
+          _dropAnimationController.reverse();
+        });
+        
+        // Trigger confetti
+        _confettiController.play();
+        
+        // Check if step is complete
+        if (droppedItems.length >= 2) {
+          Future.delayed(const Duration(seconds: 2), () {
+            if (currentStep < categories.length - 1) {
+              currentStep++;
+              currentCategory = categories[currentStep];
+              _setupCurrentStep();
+            } else {
+              isGameComplete = true;
+              _showLevelCompleteDialog();
+            }
+          });
+        }
+      });
+    } else {
+      // Wrong item - show feedback
+      setState(() {
+        currentMessage = 'Not a ${currentCategory.toLowerCase()}! Try again!';
+      });
+      
+      Future.delayed(const Duration(seconds: 2), () {
+        setState(() {
+          currentMessage = 'Step ${currentStep + 1}: Drag ${currentCategory.toLowerCase()} to the drop area';
+        });
+      });
+    }
   }
   
   void _startTimer() {
@@ -206,55 +247,90 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
       DeviceOrientation.landscapeRight,
     ]);
     
-    _scaleController.dispose();
-    _questionAnimationController.dispose();
-    _dialogAnimationController.dispose();
+    if (_animationsInitialized) {
+      _dropAnimationController.dispose();
+      _popController.dispose();
+    }
     _confettiController.dispose();
     _timer?.cancel();
     super.dispose();
   }
-
-  void _handleItemSelection(RetailItem selectedItem) {
-    if (isAnswered) return;
-    
-    setState(() {
-      isAnswered = true;
-      selectedItemName = selectedItem.name;
-      isCorrect = (selectedItem.category == currentCategory);
-      attempts++;
-      
-      if (isCorrect) {
-        score += 10;
-        _confettiController.play();
-        _scaleController.forward().then((_) {
-          _scaleController.reverse();
-        });
-        
-        // Check if level is complete
-        if (score >= levelScoreLimit) {
-          Future.delayed(const Duration(seconds: 2), () {
-            _dialogAnimationController.forward();
-          });
-        } else {
-          // Move to next step or category
-          Future.delayed(const Duration(seconds: 2), () {
-            if (currentStep < categories.length - 1) {
-              currentStep++;
-              currentCategory = categories[currentStep];
-              _setupNewQuestion();
-            } else {
-              // All categories complete
-              _dialogAnimationController.forward();
-            }
-          });
-        }
-      } else {
-        // Wrong answer - show feedback and setup new question
-        Future.delayed(const Duration(seconds: 2), () {
-          _setupNewQuestion();
-        });
-      }
-    });
+  
+  void _showLevelCompleteDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(25),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFFF6B35), Color(0xFFE53E3E)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.emoji_events,
+                size: 60,
+                color: Colors.white,
+              ),
+              const SizedBox(height: 15),
+              const Text(
+                'Level 1 Complete!',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Time: $_seconds seconds\nScore: $score',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Color(0xFFFF6B35),
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+                child: const Text(
+                  'Continue',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -328,183 +404,300 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
                   ),
                 ),
                 
-                // Guidance message
-                if (!gameStarted || isUnderstood)
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Color(0xFFFF6B35), width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          'Step ${currentStep + 1}: Select ${currentCategory}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFFF6B35),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        if (!gameStarted) ...[
-                          const SizedBox(height: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                gameStarted = true;
-                                isUnderstood = false;
-                              });
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFFFF6B35),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                            ),
-                            child: const Text('Understood'),
-                          ),
-                        ],
-                      ],
-                    ),
+                // Message display
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isUnderstood ? Colors.green : Color(0xFFFF6B35),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                
-                // Game area
-                Expanded(
-                  child: gameStarted && !isUnderstood
-                    ? Column(
-                        children: [
-                          // Question area
-                          Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Color(0xFFFF6B35), width: 3),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 15,
-                                  offset: const Offset(0, 8),
-                                ),
-                              ],
+                  child: Row(
+                    children: [
+                      AnimatedBuilder(
+                        animation: _popAnimation,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: isUnderstood ? _popAnimation.value : 1.0,
+                            child: const Icon(
+                              Icons.info,
+                              color: Colors.white,
+                              size: 20,
                             ),
-                            child: AnimatedBuilder(
-                              animation: _questionScaleAnimation,
-                              builder: (context, child) => Transform.scale(
-                                scale: _questionScaleAnimation.value,
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      'Select ${currentCategory}',
-                                      style: const TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFFFF6B35),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          currentMessage,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      if (!gameStarted && !isUnderstood)
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              isUnderstood = true;
+                              currentMessage = 'Great! Now start dragging ${currentCategory.toLowerCase()} to the drop area';
+                              gameStarted = true;
+                            });
+                            
+                            // Pop out animation
+                            _popController.forward().then((_) {
+                              _popController.reverse();
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Color(0xFFFF6B35),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Understood',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                
+                // Game area - Left Drop Area + Right Drag Area
+                Expanded(
+                  child: gameStarted
+                    ? Row(
+                        children: [
+                          // Left side - Drop area
+                          Expanded(
+                            flex: 1,
+                            child: Container(
+                              margin: const EdgeInsets.all(10),
+                              child: DragTarget<String>(
+                                onAccept: (data) {
+                                  _handleItemDrop(data!);
+                                },
+                                builder: (context, candidateData, rejectedData) {
+                                  return Container(
+                                    padding: const EdgeInsets.all(15),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.9),
+                                      borderRadius: BorderRadius.circular(15),
+                                      border: Border.all(
+                                        color: candidateData.isNotEmpty ? Colors.green : Color(0xFFFF6B35),
+                                        width: 3,
                                       ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.1),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 5),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      'from options below',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.grey.shade600,
-                                      ),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.shopping_basket,
+                                          size: 60,
+                                          color: Color(0xFFFF6B35),
+                                        ),
+                                        const SizedBox(height: 15),
+                                        Text(
+                                          'Drop ${currentCategory} Here',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFFFF6B35),
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 10),
+                                        Text(
+                                          '${droppedItems.length}/2 items',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 15),
+                                        // Show dropped items
+                                        if (droppedItems.isNotEmpty)
+                                          Wrap(
+                                            spacing: 10,
+                                            runSpacing: 10,
+                                            children: droppedItems.map((item) {
+                                              return Container(
+                                                width: 60,
+                                                height: 60,
+                                                decoration: BoxDecoration(
+                                                  borderRadius: BorderRadius.circular(10),
+                                                  border: Border.all(color: Color(0xFFFF6B35), width: 2),
+                                                  color: Colors.white,
+                                                ),
+                                                child: ClipRRect(
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  child: Image.asset(
+                                                    item.assetPath,
+                                                    fit: BoxFit.contain,
+                                                    errorBuilder: (context, error, stackTrace) {
+                                                      return Icon(
+                                                        Icons.shopping_cart,
+                                                        size: 30,
+                                                        color: Color(0xFFFF6B35),
+                                                      );
+                                                    },
+                                                  ),
+                                                ),
+                                              );
+                                            }).toList(),
+                                          ),
+                                      ],
                                     ),
-                                  ],
-                                ),
+                                  );
+                                },
                               ),
                             ),
                           ),
                           
-                          // Options grid (3 options for level 1)
+                          // Right side - Drag area
                           Expanded(
+                            flex: 1,
                             child: Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 40),
-                              child: GridView.builder(
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3, // 3 options for level 1
-                                  childAspectRatio: 1.8, // Make images shorter
-                                  crossAxisSpacing: 15,
-                                  mainAxisSpacing: 15,
-                                ),
-                                itemCount: options.length,
-                                itemBuilder: (context, index) {
-                                  final item = options[index];
-                                  final isSelected = selectedItemName == item.name;
-                                  final showResult = isAnswered;
-                                  final isCorrectAnswer = isCorrect && item.name == selectedItemName;
-                                  final isWrongAnswer = !isCorrect && item.name == selectedItemName;
-                                  
-                                  return GestureDetector(
-                                    onTap: () => _handleItemSelection(item),
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 300),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(15),
-                                        border: Border.all(
-                                          color: showResult
-                                              ? (isCorrectAnswer ? Color(0xFFFF6B35) : Colors.red)
-                                              : Color(0xFFFF6B35),
-                                          width: showResult ? 3 : 2,
+                              margin: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              padding: const EdgeInsets.all(15),
+                              child: Column(
+                                children: [
+                                  const Text(
+                                    'Available Items',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 15),
+                                  if (availableItems.isNotEmpty)
+                                    Expanded(
+                                      child: GridView.builder(
+                                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: 2,
+                                          childAspectRatio: 1.8,
+                                          crossAxisSpacing: 10,
+                                          mainAxisSpacing: 10,
                                         ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.1),
-                                            blurRadius: 10,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Expanded(
-                                            child: Image.asset(
-                                              item.assetPath,
-                                              errorBuilder: (context, error, stackTrace) {
-                                                return Icon(
-                                                  Icons.shopping_cart,
-                                                  size: 40,
-                                                  color: Color(0xFFFF6B35),
-                                                );
-                                              },
+                                        itemCount: availableItems.length,
+                                        itemBuilder: (context, index) {
+                                          final item = availableItems[index];
+                                          final isDraggable = item.category == currentCategory;
+                                          
+                                          return Draggable<String>(
+                                            data: item.name,
+                                            feedback: Container(
+                                              width: 80,
+                                              height: 80,
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.circular(15),
+                                                border: Border.all(color: Color(0xFFFF6B35), width: 2),
+                                                color: Colors.white,
+                                              ),
+                                              child: ClipRRect(
+                                                borderRadius: BorderRadius.circular(13),
+                                                child: Image.asset(
+                                                  item.assetPath,
+                                                  fit: BoxFit.contain,
+                                                  errorBuilder: (context, error, stackTrace) {
+                                                    return Icon(
+                                                      Icons.image,
+                                                      size: 40,
+                                                      color: Color(0xFFFF6B35),
+                                                    );
+                                                  },
+                                                ),
+                                              ),
                                             ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            item.name,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFFFF6B35),
+                                            childWhenDragging: Container(
+                                              width: 80,
+                                              height: 80,
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.circular(15),
+                                                border: Border.all(color: Colors.grey, width: 1),
+                                                color: Colors.grey[300],
+                                              ),
                                             ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                          if (showResult)
-                                            Icon(
-                                              isCorrectAnswer ? Icons.check_circle : Icons.cancel,
-                                              color: isCorrectAnswer ? Color(0xFFFF6B35) : Colors.red,
-                                              size: 24,
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.circular(15),
+                                                border: Border.all(
+                                                  color: isDraggable ? Color(0xFFFF6B35) : Colors.grey,
+                                                  width: isDraggable ? 3 : 2,
+                                                ),
+                                                color: Colors.white,
+                                                boxShadow: isDraggable ? [
+                                                  BoxShadow(
+                                                    color: Color(0xFFFF6B35).withOpacity(0.3),
+                                                    blurRadius: 8,
+                                                    offset: const Offset(0, 4),
+                                                  ),
+                                                ] : null,
+                                              ),
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  Expanded(
+                                                    child: Image.asset(
+                                                      item.assetPath,
+                                                      fit: BoxFit.contain,
+                                                      color: isDraggable ? null : Colors.grey.withOpacity(0.5),
+                                                      colorBlendMode: isDraggable ? null : BlendMode.saturation,
+                                                      errorBuilder: (context, error, stackTrace) {
+                                                        return Icon(
+                                                          isDraggable ? Icons.shopping_cart : Icons.lock,
+                                                          size: 30,
+                                                          color: isDraggable ? Color(0xFFFF6B35) : Colors.grey,
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 5),
+                                                  Text(
+                                                    item.name,
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: isDraggable ? Color(0xFFFF6B35) : Colors.grey,
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                ],
+                                              ),
                                             ),
-                                        ],
+                                          );
+                                        },
                                       ),
                                     ),
-                                  );
-                                },
+                                ],
                               ),
                             ),
                           ),
@@ -517,15 +710,13 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
           ),
           
           // Confetti overlay
-          if (isCorrect)
+          if (droppedItems.isNotEmpty)
             Positioned.fill(
               child: ConfettiWidget(
                 confettiController: _confettiController,
                 blastDirectionality: BlastDirectionality.explosive,
-                emissionFrequency: 0.02,
-                numberOfParticles: 30,
-                gravity: 0.25,
-                colors: [
+                shouldLoop: false,
+                colors: const [
                   Color(0xFFFF6B35),
                   Color(0xFFE53E3E),
                   Color(0xFFC53030),
@@ -535,78 +726,72 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
             ),
           
           // Level complete dialog
-          if (score >= levelScoreLimit || (currentStep >= categories.length - 1 && isAnswered))
+          if (isGameComplete)
             Positioned.fill(
               child: Container(
                 color: Colors.black.withOpacity(0.7),
                 child: Center(
-                  child: AnimatedBuilder(
-                    animation: _dialogScaleAnimation,
-                    builder: (context, child) => Transform.scale(
-                      scale: _dialogScaleAnimation.value,
-                      child: Container(
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
+                  child: Container(
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.emoji_events,
-                              size: 60,
-                              color: Color(0xFFFF6B35),
-                            ),
-                            const SizedBox(height: 20),
-                            const Text(
-                              'Level 1 Complete!',
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFFF6B35),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Time: $_seconds seconds\nScore: $score',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFFFF6B35),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25),
-                                ),
-                              ),
-                              child: const Text(
-                                'Continue',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.emoji_events,
+                          size: 60,
+                          color: Color(0xFFFF6B35),
                         ),
-                      ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Level 1 Complete!',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFFF6B35),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Time: $_seconds seconds\nScore: $score',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFFFF6B35),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                          ),
+                          child: const Text(
+                            'Continue',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
