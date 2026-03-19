@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:confetti/confetti.dart';
+import '../game_menu_new.dart';
 
 class CleaningLevel1Game extends StatefulWidget {
   const CleaningLevel1Game({super.key});
@@ -46,38 +47,23 @@ class _CleaningLevel1GameState extends State<CleaningLevel1Game> with TickerProv
   
   // Game step tracking
   int currentStep = 0;
-  List<String> categories = ['Tools', 'Supplies', 'Equipment', 'Safety'];
-  String currentCategory = 'Tools';
-  String currentMessage = 'Step 1: Drag the cleaning tools to the drop box';
+  int totalSteps = 3; // 3 steps: Broom, Mob, Cloth
+  String currentMessage = 'Step 1: Drag the correct item to the drop area';
   bool gameStarted = false;
   bool isUnderstood = false;
+  
+  // Target item for each step
+  CleaningItem? targetItem;
   
   // Animation state
   bool _animationsInitialized = false;
   
-  // Items for each category
-  Map<String, List<CleaningItem>> categoryItems = {
-    'Tools': [
-      CleaningItem(name: 'Broom', assetPath: 'assets/Broom.jpeg', category: 'Tools'),
-      CleaningItem(name: 'Mop', assetPath: 'assets/kitchen1.jpg', category: 'Tools'),
-      CleaningItem(name: 'Dustpan', assetPath: 'assets/kitchen1.jpg', category: 'Tools'),
-    ],
-    'Supplies': [
-      CleaningItem(name: 'Cleaning Spray', assetPath: 'assets/kitchen1.jpg', category: 'Supplies'),
-      CleaningItem(name: 'Soap', assetPath: 'assets/kitchen1.jpg', category: 'Supplies'),
-      CleaningItem(name: 'Sponges', assetPath: 'assets/kitchen1.jpg', category: 'Supplies'),
-    ],
-    'Equipment': [
-      CleaningItem(name: 'Vacuum Cleaner', assetPath: 'assets/kitchen1.jpg', category: 'Equipment'),
-      CleaningItem(name: 'Bucket', assetPath: 'assets/kitchen1.jpg', category: 'Equipment'),
-      CleaningItem(name: 'Trash Can', assetPath: 'assets/kitchen1.jpg', category: 'Equipment'),
-    ],
-    'Safety': [
-      CleaningItem(name: 'Gloves', assetPath: 'assets/kitchen1.jpg', category: 'Safety'),
-      CleaningItem(name: 'Warning Sign', assetPath: 'assets/kitchen1.jpg', category: 'Safety'),
-      CleaningItem(name: 'First Aid', assetPath: 'assets/kitchen1.jpg', category: 'Safety'),
-    ],
-  };
+  // All cleaning items
+  List<CleaningItem> allCleaningItems = [
+    CleaningItem(name: 'Broom', assetPath: 'assets/Broom.jpeg', category: 'Tools'),
+    CleaningItem(name: 'Mob', assetPath: 'assets/Mob.jpeg', category: 'Tools'),
+    CleaningItem(name: 'Cloth', assetPath: 'assets/cloth.jpeg', category: 'Supplies'),
+  ];
   
   // Force landscape orientation
   _CleaningLevel1GameState() {
@@ -144,21 +130,135 @@ class _CleaningLevel1GameState extends State<CleaningLevel1Game> with TickerProv
   
   void _initializeGame() {
     currentStep = 0;
-    currentCategory = categories[currentStep];
-    currentMessage = 'Step ${currentStep + 1}: Drag the ${currentCategory.toLowerCase()} to the drop box';
     droppedItems = [];
     isGameComplete = false;
     gameStarted = false;
     isUnderstood = false;
     
-    // Get items for current category
-    availableItems = List.from(categoryItems[currentCategory]!);
+    // Generate first step
+    _generateNewStep();
+  }
+  
+  void _generateNewStep() {
+    if (currentStep >= totalSteps) {
+      _showGameCompleteDialog();
+      return;
+    }
     
-    // Show only 3 items at a time, shuffle them
-    availableItems.shuffle();
-    availableItems = availableItems.take(3).toList();
+    // Set target item for this step
+    targetItem = allCleaningItems[currentStep];
     
-    print('Step ${currentStep + 1}: ${currentCategory} - ${availableItems.length} items');
+    // Create 4 answer options (including the correct answer)
+    List<CleaningItem> answerOptions = [];
+    answerOptions.add(targetItem!); // Add correct answer
+    
+    // Add 3 random other items (can include duplicates if needed)
+    List<CleaningItem> otherItems = allCleaningItems.where((item) => item.name != targetItem!.name).toList();
+    for (int i = 0; i < 3 && i < otherItems.length; i++) {
+      answerOptions.add(otherItems[i]);
+    }
+    
+    // If we need more items (less than 4 total), add some duplicates
+    while (answerOptions.length < 4) {
+      answerOptions.add(otherItems[currentStep % otherItems.length]);
+    }
+    
+    // Shuffle the answer options
+    answerOptions.shuffle();
+    availableItems = answerOptions;
+    
+    currentMessage = 'Step ${currentStep + 1}: Drag the ${targetItem!.name} to the drop area';
+  }
+  
+  void _showGameCompleteDialog() {
+    _timer?.cancel();
+    setState(() {
+      isGameComplete = true;
+    });
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(30),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Color(0xFFFF6B35),
+                  borderRadius: BorderRadius.circular(40),
+                ),
+                child: Icon(
+                  Icons.emoji_events,
+                  size: 60,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Level Complete!',
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFFF6B35),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Time: $_seconds seconds\nScore: $score',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 25),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (context) => GameMenuNew(),
+                    ),
+                    (route) => false,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFFFF6B35),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+                child: const Text(
+                  'Back to Game Menu',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
   
   void _startTimer() {
@@ -203,24 +303,6 @@ class _CleaningLevel1GameState extends State<CleaningLevel1Game> with TickerProv
     }
   }
 
-  String _getCurrentRequiredCategory() {
-    return currentCategory;
-  }
-
-  bool _isItemDraggable(String itemName) {
-    if (!gameStarted || isUnderstood) return false;
-    
-    String requiredCategory = _getCurrentRequiredCategory();
-    
-    // Check if item belongs to current category
-    for (var item in availableItems) {
-      if (item.name == itemName && item.category == requiredCategory) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   void _handleItemDrop(String itemName) {
     if (!gameStarted || isUnderstood) return;
     
@@ -239,43 +321,25 @@ class _CleaningLevel1GameState extends State<CleaningLevel1Game> with TickerProv
       attempts++;
       droppedItems.add(droppedItem!);
       
-      // Check if the dropped item belongs to the current category
-      if (droppedItem!.category == currentCategory) {
-        score++;
+      // Check if the dropped item is the correct target item
+      if (droppedItem!.name == targetItem!.name) {
+        score += 10;
         _dropAnimationController.forward().then((_) {
           _dropAnimationController.reverse();
         });
         _confettiController.play();
         
-        // Remove the dropped item from available items
-        availableItems.remove(droppedItem!);
-        
-        // Check if step is complete
-        if (availableItems.isEmpty) {
-          // Move to next step
-          if (currentStep < categories.length - 1) {
-            currentStep++;
-            currentCategory = categories[currentStep];
-            currentMessage = 'Step ${currentStep + 1}: Drag the ${currentCategory.toLowerCase()} to the drop box';
-            droppedItems = [];
-            
-            // Get new items for next category
-            availableItems = List.from(categoryItems[currentCategory]!);
-            availableItems.shuffle();
-            availableItems = availableItems.take(3).toList();
-            
-            Future.delayed(const Duration(seconds: 2), () {
+        // Move to next step after a delay
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            setState(() {
+              currentStep++;
+              droppedItems = [];
               _confettiController.stop();
-            });
-          } else {
-            // Game complete
-            isGameComplete = true;
-            _confettiController.play();
-            Future.delayed(const Duration(seconds: 3), () {
-              _confettiController.stop();
+              _generateNewStep();
             });
           }
-        }
+        });
       } else {
         // Wrong category - remove the item and add it back
         droppedItems.remove(droppedItem!);
@@ -314,7 +378,7 @@ class _CleaningLevel1GameState extends State<CleaningLevel1Game> with TickerProv
                   margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 4),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Color(0xFF059669),
+                    color: Color(0xFFFF6B35), // Orange color like retail games
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
@@ -344,7 +408,7 @@ class _CleaningLevel1GameState extends State<CleaningLevel1Game> with TickerProv
                         ),
                       ),
                       Text(
-                        'Step: ${currentStep + 1}/4',
+                        'Step: ${currentStep + 1}/$totalSteps',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -358,12 +422,12 @@ class _CleaningLevel1GameState extends State<CleaningLevel1Game> with TickerProv
                 // Guidance message
                 if (!gameStarted || isUnderstood)
                   Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+                    margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.9),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Color(0xFF059669), width: 2),
+                      border: Border.all(color: Color(0xFFFF6B35), width: 2),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
@@ -379,7 +443,7 @@ class _CleaningLevel1GameState extends State<CleaningLevel1Game> with TickerProv
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF059669),
+                            color: Color(0xFFFF6B35),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -390,12 +454,12 @@ class _CleaningLevel1GameState extends State<CleaningLevel1Game> with TickerProv
                               setState(() {
                                 gameStarted = true;
                                 isUnderstood = false;
-                                currentMessage = 'Step ${currentStep + 1}: Drag the ${currentCategory.toLowerCase()} to the drop box';
+                                currentMessage = 'Step ${currentStep + 1}: Drag the ${targetItem!.name} to the drop area';
                               });
                               _startPopAnimation();
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF059669),
+                              backgroundColor: Color(0xFFFF6B35),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                               shape: RoundedRectangleBorder(
@@ -433,7 +497,7 @@ class _CleaningLevel1GameState extends State<CleaningLevel1Game> with TickerProv
                                       color: Colors.white.withOpacity(0.8),
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
-                                        color: Color(0xFF059669),
+                                        color: Color(0xFFFF6B35),
                                         width: 3,
                                       ),
                                       boxShadow: [
@@ -452,21 +516,49 @@ class _CleaningLevel1GameState extends State<CleaningLevel1Game> with TickerProv
                                         return Column(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
-                                            Icon(
-                                              Icons.cleaning_services,
-                                              size: 60,
-                                              color: Color(0xFF059669),
-                                            ),
-                                            const SizedBox(height: 10),
-                                            Text(
-                                              currentCategory,
-                                              style: const TextStyle(
-                                                fontSize: 24,
-                                                fontWeight: FontWeight.bold,
-                                                color: Color(0xFF059669),
+                                            // Target item display
+                                            if (targetItem != null) ...[
+                                              Container(
+                                                width: 80,
+                                                height: 80,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius: BorderRadius.circular(10),
+                                                  border: Border.all(
+                                                    color: Color(0xFFFF6B35),
+                                                    width: 2,
+                                                  ),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: Colors.black.withOpacity(0.1),
+                                                      blurRadius: 4,
+                                                      offset: const Offset(0, 2),
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: Image.asset(
+                                                  targetItem!.assetPath,
+                                                  fit: BoxFit.contain,
+                                                  errorBuilder: (context, error, stackTrace) {
+                                                    return Icon(
+                                                      Icons.cleaning_services,
+                                                      size: 40,
+                                                      color: Color(0xFFFF6B35),
+                                                    );
+                                                  },
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(height: 10),
+                                              const SizedBox(height: 10),
+                                              Text(
+                                                targetItem!.name,
+                                                style: const TextStyle(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFFFF6B35),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 10),
+                                            ],
                                             Text(
                                               'Drop here',
                                               style: TextStyle(
@@ -494,30 +586,29 @@ class _CleaningLevel1GameState extends State<CleaningLevel1Game> with TickerProv
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              // Available items (1x3 format)
+                              // Available items (2x2 format)
                               if (gameStarted && !isUnderstood)
                                 GridView.builder(
                                   shrinkWrap: true,
                                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 1,
-                                    childAspectRatio: 3.0,
-                                    crossAxisSpacing: 10,
-                                    mainAxisSpacing: 10,
+                                    crossAxisCount: 2,
+                                    childAspectRatio: 1.5,
+                                    crossAxisSpacing: 15,
+                                    mainAxisSpacing: 15,
                                   ),
                                   itemCount: availableItems.length,
                                   itemBuilder: (context, index) {
                                     final item = availableItems[index];
-                                    final isDraggable = _isItemDraggable(item.name);
                                     
                                     return Draggable<String>(
                                       data: item.name,
                                       feedback: Container(
-                                        width: 120,
+                                        width: 100,
                                         height: 80,
                                         decoration: BoxDecoration(
-                                          color: Colors.white,
+                                          color: Color(0xFFFF6B35).withOpacity(0.8),
                                           borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: Color(0xFF059669), width: 2),
+                                          border: Border.all(color: Color(0xFFFF6B35), width: 2),
                                           boxShadow: [
                                             BoxShadow(
                                               color: Colors.black.withOpacity(0.3),
@@ -533,11 +624,12 @@ class _CleaningLevel1GameState extends State<CleaningLevel1Game> with TickerProv
                                               item.assetPath,
                                               width: 40,
                                               height: 40,
+                                              fit: BoxFit.contain,
                                               errorBuilder: (context, error, stackTrace) {
                                                 return Icon(
                                                   Icons.cleaning_services,
                                                   size: 40,
-                                                  color: Color(0xFF059669),
+                                                  color: Colors.white,
                                                 );
                                               },
                                             ),
@@ -547,14 +639,14 @@ class _CleaningLevel1GameState extends State<CleaningLevel1Game> with TickerProv
                                               style: const TextStyle(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.bold,
-                                                color: Color(0xFF059669),
+                                                color: Colors.white,
                                               ),
                                             ),
                                           ],
                                         ),
                                       ),
                                       childWhenDragging: Container(
-                                        width: 120,
+                                        width: 100,
                                         height: 80,
                                         decoration: BoxDecoration(
                                           color: Colors.grey.shade300,
@@ -571,48 +663,46 @@ class _CleaningLevel1GameState extends State<CleaningLevel1Game> with TickerProv
                                       ),
                                       child: Container(
                                         decoration: BoxDecoration(
-                                          color: isDraggable ? Colors.white : Colors.grey.shade300,
+                                          color: Colors.white,
                                           borderRadius: BorderRadius.circular(12),
                                           border: Border.all(
-                                            color: isDraggable ? Color(0xFF059669) : Colors.grey.shade400,
+                                            color: Color(0xFFFF6B35),
                                             width: 2,
                                           ),
-                                          boxShadow: isDraggable ? [
+                                          boxShadow: [
                                             BoxShadow(
                                               color: Colors.black.withOpacity(0.2),
                                               blurRadius: 8,
                                               offset: const Offset(0, 4),
                                             ),
-                                          ] : null,
+                                          ],
                                         ),
-                                        child: Opacity(
-                                          opacity: isDraggable ? 1.0 : 0.5,
-                                          child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Image.asset(
-                                                item.assetPath,
-                                                width: 40,
-                                                height: 40,
-                                                errorBuilder: (context, error, stackTrace) {
-                                                  return Icon(
-                                                    Icons.cleaning_services,
-                                                    size: 40,
-                                                    color: Color(0xFF059669),
-                                                  );
-                                                },
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Image.asset(
+                                              item.assetPath,
+                                              width: 40,
+                                              height: 40,
+                                              fit: BoxFit.contain,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return Icon(
+                                                  Icons.cleaning_services,
+                                                  size: 40,
+                                                  color: Color(0xFFFF6B35),
+                                                );
+                                              },
+                                            ),
+                                            const SizedBox(height: 5),
+                                            Text(
+                                              item.name,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFFFF6B35),
                                               ),
-                                              const SizedBox(height: 5),
-                                              Text(
-                                                item.name,
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: isDraggable ? Color(0xFF059669) : Colors.grey.shade600,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     );
@@ -654,7 +744,7 @@ class _CleaningLevel1GameState extends State<CleaningLevel1Game> with TickerProv
                         const Icon(
                           Icons.emoji_events,
                           size: 60,
-                          color: Color(0xFF059669),
+                          color: Color(0xFFFF6B35),
                         ),
                         const SizedBox(height: 20),
                         const Text(
@@ -662,7 +752,7 @@ class _CleaningLevel1GameState extends State<CleaningLevel1Game> with TickerProv
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF059669),
+                            color: Color(0xFFFF6B35),
                           ),
                         ),
                         const SizedBox(height: 10),

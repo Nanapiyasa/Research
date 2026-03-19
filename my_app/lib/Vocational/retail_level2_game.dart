@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:confetti/confetti.dart';
+import 'retail_level3_game.dart';
 
 class RetailLevel2Game extends StatelessWidget {
   const RetailLevel2Game({Key? key}) : super(key: key);
@@ -10,7 +11,7 @@ class RetailLevel2Game extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Retail Categorization Game Level 2',
+      title: 'Retail Billing Game Level 2',
       theme: ThemeData(
         primarySwatch: Colors.orange,
         useMaterial3: true,
@@ -32,61 +33,60 @@ class LandscapeGame extends StatelessWidget {
       DeviceOrientation.landscapeRight,
     ]);
 
-    return const RetailGameScreen();
+    return const RetailBillingGameScreen();
   }
-}
-
-class RetailGameScreen extends StatefulWidget {
-  const RetailGameScreen({Key? key}) : super(key: key);
-
-  @override
-  State<RetailGameScreen> createState() => _RetailGameScreenState();
 }
 
 class RetailItem {
   final String name;
   final String assetPath;
-  final String category;
+  final double price;
 
   RetailItem({
     required this.name,
     required this.assetPath,
-    required this.category,
+    required this.price,
   });
 }
 
-class _RetailGameScreenState extends State<RetailGameScreen> with TickerProviderStateMixin {
+class RetailBillingGameScreen extends StatefulWidget {
+  const RetailBillingGameScreen({Key? key}) : super(key: key);
+
+  @override
+  State<RetailBillingGameScreen> createState() => _RetailBillingGameScreenState();
+}
+
+class _RetailBillingGameScreenState extends State<RetailBillingGameScreen> with TickerProviderStateMixin {
   // Game variables
   late List<RetailItem> allItems;
-  late RetailItem targetItem;
-  late List<RetailItem> options;
+  late List<RetailItem> availableItems;
+  late List<RetailItem> scannedItems;
+  RetailItem? currentItemForVerification;
+  String? draggedItem;
   int score = 0;
-  int attempts = 0;
-  int levelScoreLimit = 100;
-  bool isAnswered = false;
-  String? selectedItemName;
-  bool isCorrect = false;
-  late AnimationController _scaleController;
-  late AnimationController _questionAnimationController;
-  late Animation<double> _questionScaleAnimation;
+  int totalBilledItems = 0;
+  int targetBilledItems = 10; // Bill all 10 items
+  bool isGameComplete = false;
+  String currentMessage = 'Drag items to barcode scanner, then tap to verify billing';
+  bool gameStarted = false;
+  bool isUnderstood = false;
+  bool isWaitingForVerification = false;
   
   // Timer variables
   int _seconds = 0;
   Timer? _timer;
   
-  // Animation for level complete dialog
-  late AnimationController _dialogAnimationController;
-  late Animation<double> _dialogScaleAnimation;
+  // Animation controllers
+  late AnimationController _scanAnimationController;
+  late Animation<double> _scanAnimation;
+  late AnimationController _popController;
+  late Animation<double> _popAnimation;
   
   // Confetti controller
   late ConfettiController _confettiController;
   
-  // Game step tracking
-  int currentStep = 0;
-  List<String> categories = ['Fruits', 'Dairy', 'Snacks', 'Drinks'];
-  String currentCategory = 'Fruits';
-  bool gameStarted = false;
-  bool isUnderstood = false;
+  // Animation state
+  bool _animationsInitialized = false;
 
   @override
   void initState() {
@@ -96,101 +96,196 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
     // Initialize confetti controller
     _confettiController = ConfettiController(duration: const Duration(seconds: 2));
     
-    // Initialize dialog animation controller
-    _dialogAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 500),
+    // Initialize animation controllers
+    _scanAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
-    _dialogScaleAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _dialogAnimationController,
-      curve: Curves.elasticOut,
-    ));
-    
-    _scaleController = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this,
-    );
-    _questionAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    );
-    
-    _questionScaleAnimation = Tween<double>(
+    _scanAnimation = Tween<double>(
       begin: 1.0,
-      end: 1.05,
+      end: 1.1,
     ).animate(CurvedAnimation(
-      parent: _questionAnimationController,
+      parent: _scanAnimationController,
       curve: Curves.elasticInOut,
     ));
     
-    _questionAnimationController.repeat(reverse: true);
+    _popController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _popAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.1,
+    ).animate(CurvedAnimation(
+      parent: _popController,
+      curve: Curves.elasticInOut,
+    ));
+    
+    _animationsInitialized = true;
     _startTimer();
   }
   
   void _initializeGame() {
-    // All retail items
+    // All retail items with prices for billing
     allItems = [
-      // Fruits
-      RetailItem(name: 'Orange', assetPath: 'assets/Orange.png', category: 'Fruits'),
-      RetailItem(name: 'Pineapple', assetPath: 'assets/Pine apple.png', category: 'Fruits'),
-      RetailItem(name: 'Banana', assetPath: 'assets/banana.png', category: 'Fruits'),
-      RetailItem(name: 'Apple', assetPath: 'assets/kitchen1.jpg', category: 'Fruits'),
-      RetailItem(name: 'Grapes', assetPath: 'assets/kitchen1.jpg', category: 'Fruits'),
-      
-      // Dairy
-      RetailItem(name: 'Butter', assetPath: 'assets/Butter.png', category: 'Dairy'),
-      RetailItem(name: 'Cheese', assetPath: 'assets/Cheese.png', category: 'Dairy'),
-      RetailItem(name: 'Milk Bottle', assetPath: 'assets/Milk.png', category: 'Dairy'),
-      RetailItem(name: 'Yogurt', assetPath: 'assets/kitchen1.jpg', category: 'Dairy'),
-      RetailItem(name: 'Ice Cream', assetPath: 'assets/kitchen1.jpg', category: 'Dairy'),
-      
-      // Snacks
-      RetailItem(name: 'Chocolate', assetPath: 'assets/Chocolate.png', category: 'Snacks'),
-      RetailItem(name: 'Onion Chips', assetPath: 'assets/Onion chips.png', category: 'Snacks'),
-      RetailItem(name: 'Garlic Chips', assetPath: 'assets/Garlic chips.png', category: 'Snacks'),
-      RetailItem(name: 'Cookies', assetPath: 'assets/kitchen1.jpg', category: 'Snacks'),
-      RetailItem(name: 'Popcorn', assetPath: 'assets/kitchen1.jpg', category: 'Snacks'),
-      
-      // Drinks
-      RetailItem(name: 'Energy Drink', assetPath: 'assets/Energy drink.png', category: 'Drinks'),
-      RetailItem(name: 'Soda Bottle', assetPath: 'assets/Soda bottle.png', category: 'Drinks'),
-      RetailItem(name: 'Coke Bottle', assetPath: 'assets/Coke bottle.png', category: 'Drinks'),
-      RetailItem(name: 'Juice Box', assetPath: 'assets/kitchen1.jpg', category: 'Drinks'),
-      RetailItem(name: 'Water Bottle', assetPath: 'assets/kitchen1.jpg', category: 'Drinks'),
+      RetailItem(name: 'Energy Drink', assetPath: 'assets/Energy_Drink.png', price: 3.99),
+      RetailItem(name: 'Garlic Chips', assetPath: 'assets/Garlic_Chips.png', price: 2.49),
+      RetailItem(name: 'Milk Bottle', assetPath: 'assets/Milk_bottle.png', price: 4.99),
+      RetailItem(name: 'Onion Chips', assetPath: 'assets/Onion_chips.png', price: 2.29),
+      RetailItem(name: 'Potato Chips', assetPath: 'assets/Potato_chips.png', price: 3.49),
+      RetailItem(name: 'Chocolate', assetPath: 'assets/Chocolate.png', price: 2.99),
+      RetailItem(name: 'Cheese', assetPath: 'assets/Cheese.png', price: 5.99),
+      RetailItem(name: 'Butter', assetPath: 'assets/Butter.png', price: 4.49),
+      RetailItem(name: 'Coke', assetPath: 'assets/Coke.png', price: 1.99),
+      RetailItem(name: 'Soda', assetPath: 'assets/Soda_Bottle.png', price: 2.49),
     ];
     
-    _setupNewQuestion();
+    // Shuffle items for random presentation
+    final random = math.Random();
+    availableItems = List.from(allItems)..shuffle(random);
+    scannedItems = [];
+    currentItemForVerification = null;
+    isWaitingForVerification = false;
   }
   
-  void _setupNewQuestion() {
-    // Get items for current category
-    final categoryItems = allItems.where((item) => item.category == currentCategory).toList();
+  void _handleItemDrop(String itemName) {
+    if (isWaitingForVerification) {
+      setState(() {
+        currentMessage = 'Please verify the current item first!';
+      });
+      return;
+    }
     
-    if (categoryItems.isEmpty) return;
-    
-    // Select random target item from current category
-    final random = math.Random();
-    targetItem = categoryItems[random.nextInt(categoryItems.length)];
-    
-    // Get wrong options (items from other categories)
-    final wrongOptions = allItems.where((item) => item.category != currentCategory).toList();
-    wrongOptions.shuffle(random);
-    
-    // Select 3 wrong options (harder than level 1)
-    final selectedWrong = wrongOptions.take(3).toList();
-    
-    // Combine target with wrong options and shuffle
-    options = [targetItem, ...selectedWrong];
-    options.shuffle(random);
+    final item = availableItems.firstWhere((item) => item.name == itemName);
     
     setState(() {
-      isAnswered = false;
-      selectedItemName = null;
-      isCorrect = false;
+      currentItemForVerification = item;
+      availableItems.removeWhere((i) => i.name == itemName);
+      isWaitingForVerification = true;
+      currentMessage = 'Tap on the item to verify billing details';
+      
+      // Animate scan
+      _scanAnimationController.forward().then((_) {
+        _scanAnimationController.reverse();
+      });
+    });
+  }
+  
+  void _handleItemTap(RetailItem item) {
+    if (currentItemForVerification?.name != item.name) {
+      return; // Only allow tapping the current item for verification
+    }
+    
+    // Show item details for billing verification
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Color(0xFFFF6B35), width: 2),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    item.assetPath,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Icon(
+                        Icons.shopping_cart,
+                        size: 40,
+                        color: Color(0xFFFF6B35),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 15),
+              Text(
+                item.name,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFFF6B35),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '\$${item.price.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _completeVerification(item);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFFFF6B35),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+                child: const Text(
+                  'Verify Billing',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  void _completeVerification(RetailItem item) {
+    setState(() {
+      scannedItems.add(item);
+      totalBilledItems++;
+      score += 10; // Add points for successful verification
+      currentItemForVerification = null;
+      isWaitingForVerification = false;
+      
+      // Trigger confetti for successful verification
+      _confettiController.play();
+      
+      // Check if game is complete
+      if (totalBilledItems >= targetBilledItems) {
+        isGameComplete = true;
+        _showLevelCompleteDialog();
+      } else {
+        currentMessage = 'Billing verified! Drag next item to scanner (${targetBilledItems - totalBilledItems} remaining)';
+      }
     });
   }
   
@@ -214,55 +309,95 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
       DeviceOrientation.landscapeRight,
     ]);
     
-    _scaleController.dispose();
-    _questionAnimationController.dispose();
-    _dialogAnimationController.dispose();
+    if (_animationsInitialized) {
+      _scanAnimationController.dispose();
+      _popController.dispose();
+    }
     _confettiController.dispose();
     _timer?.cancel();
     super.dispose();
   }
-
-  void _handleItemSelection(RetailItem selectedItem) {
-    if (isAnswered) return;
-    
-    setState(() {
-      isAnswered = true;
-      selectedItemName = selectedItem.name;
-      isCorrect = (selectedItem.category == currentCategory);
-      attempts++;
-      
-      if (isCorrect) {
-        score += 10;
-        _confettiController.play();
-        _scaleController.forward().then((_) {
-          _scaleController.reverse();
-        });
-        
-        // Check if level is complete
-        if (score >= levelScoreLimit) {
-          Future.delayed(const Duration(seconds: 2), () {
-            _dialogAnimationController.forward();
-          });
-        } else {
-          // Move to next step or category
-          Future.delayed(const Duration(seconds: 2), () {
-            if (currentStep < categories.length - 1) {
-              currentStep++;
-              currentCategory = categories[currentStep];
-              _setupNewQuestion();
-            } else {
-              // All categories complete
-              _dialogAnimationController.forward();
-            }
-          });
-        }
-      } else {
-        // Wrong answer - show feedback and setup new question
-        Future.delayed(const Duration(seconds: 2), () {
-          _setupNewQuestion();
-        });
-      }
-    });
+  
+  void _showLevelCompleteDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(25),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFFF6B35), Color(0xFFE53E3E)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.emoji_events,
+                size: 60,
+                color: Colors.white,
+              ),
+              const SizedBox(height: 15),
+              const Text(
+                'Level 2 Complete!',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Time: $_seconds seconds\nItems Billed: $totalBilledItems/$targetBilledItems',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const RetailCustomerGameScreen(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFFFF6B35),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+                child: const Text(
+                  'Start Level 3',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -295,7 +430,7 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
                   margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 4),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Color(0xFFFF6B35), // Orange color
+                    color: Color(0xFFFF6B35),
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
@@ -325,7 +460,7 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
                         ),
                       ),
                       Text(
-                        'Step: ${currentStep + 1}/4',
+                        'Billed: $totalBilledItems/$targetBilledItems',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -336,183 +471,458 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
                   ),
                 ),
                 
-                // Guidance message
-                if (!gameStarted || isUnderstood)
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Color(0xFFFF6B35), width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          'Step ${currentStep + 1}: Select ${currentCategory}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFFF6B35),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        if (!gameStarted) ...[
-                          const SizedBox(height: 8),
-                          ElevatedButton(
-                            onPressed: () {
-                              setState(() {
-                                gameStarted = true;
-                                isUnderstood = false;
-                              });
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFFFF6B35),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                            ),
-                            child: const Text('Understood'),
-                          ),
-                        ],
-                      ],
-                    ),
+                // Message display
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isUnderstood ? Colors.green : Color(0xFFFF6B35),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                
-                // Game area
-                Expanded(
-                  child: gameStarted && !isUnderstood
-                    ? Column(
-                        children: [
-                          // Question area
-                          Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Color(0xFFFF6B35), width: 3),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 15,
-                                  offset: const Offset(0, 8),
-                                ),
-                              ],
+                  child: Row(
+                    children: [
+                      AnimatedBuilder(
+                        animation: _popAnimation,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: isUnderstood ? _popAnimation.value : 1.0,
+                            child: const Icon(
+                              Icons.info,
+                              color: Colors.white,
+                              size: 20,
                             ),
-                            child: AnimatedBuilder(
-                              animation: _questionScaleAnimation,
-                              builder: (context, child) => Transform.scale(
-                                scale: _questionScaleAnimation.value,
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      'Select ${currentCategory}',
-                                      style: const TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFFFF6B35),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          currentMessage,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      if (!gameStarted && !isUnderstood)
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              isUnderstood = true;
+                              currentMessage = 'Great! Drag an item to scanner, then tap the yellow item to verify';
+                              gameStarted = true;
+                            });
+                            
+                            // Pop out animation
+                            _popController.forward().then((_) {
+                              _popController.reverse();
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Color(0xFFFF6B35),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Understood',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                
+                // Game area - Left Barcode Scanner Area + Right Drag Area
+                Expanded(
+                  child: gameStarted
+                    ? Row(
+                        children: [
+                          // Left side - Barcode Scanner area
+                          Expanded(
+                            flex: 1,
+                            child: Container(
+                              margin: const EdgeInsets.all(10),
+                              child: DragTarget<String>(
+                                onAccept: (data) {
+                                  _handleItemDrop(data!);
+                                },
+                                onWillAccept: (data) {
+                                  return !isWaitingForVerification; // Only accept if not waiting for verification
+                                },
+                                builder: (context, candidateData, rejectedData) {
+                                  return Container(
+                                    padding: const EdgeInsets.all(15),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.9),
+                                      borderRadius: BorderRadius.circular(15),
+                                      border: Border.all(
+                                        color: candidateData.isNotEmpty && !isWaitingForVerification 
+                                            ? Colors.green 
+                                            : isWaitingForVerification 
+                                                ? Colors.red 
+                                                : Color(0xFFFF6B35),
+                                        width: 3,
                                       ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.1),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 5),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      'from options below',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.grey.shade600,
-                                      ),
+                                    child: Stack(
+                                      children: [
+                                        // Background content - only show when no item is dropped
+                                        if (currentItemForVerification == null)
+                                          Center(
+                                            child: Column(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                AnimatedBuilder(
+                                                  animation: _scanAnimation,
+                                                  builder: (context, child) {
+                                                    return Transform.scale(
+                                                      scale: _scanAnimation.value,
+                                                      child: Icon(
+                                                        Icons.qr_code_scanner,
+                                                        size: 60,
+                                                        color: isWaitingForVerification ? Colors.red : Color(0xFFFF6B35),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                                const SizedBox(height: 15),
+                                                Text(
+                                                  'Barcode Scanner Area',
+                                                  style: TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: isWaitingForVerification ? Colors.red : Color(0xFFFF6B35),
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                                const SizedBox(height: 10),
+                                                Text(
+                                                  isWaitingForVerification 
+                                                      ? 'Waiting for verification...'
+                                                      : 'Drop items here to scan',
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    color: isWaitingForVerification ? Colors.red : Colors.grey.shade600,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                                const SizedBox(height: 15),
+                                                Text(
+                                                  'Tap scanned items to verify billing',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.blue.shade600,
+                                                    fontStyle: FontStyle.italic,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        
+                                        // Current item for verification - positioned in center
+                                        if (currentItemForVerification != null)
+                                          Positioned.fill(
+                                            child: Center(
+                                              child: GestureDetector(
+                                                onTap: () => _handleItemTap(currentItemForVerification!),
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(10),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.yellow.shade100,
+                                                    borderRadius: BorderRadius.circular(15),
+                                                    border: Border.all(color: Colors.orange, width: 3),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.orange.withOpacity(0.3),
+                                                        blurRadius: 10,
+                                                        offset: const Offset(0, 5),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: Column(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Text(
+                                                        'CURRENT ITEM - Tap to Verify',
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: Colors.orange.shade800,
+                                                        ),
+                                                        textAlign: TextAlign.center,
+                                                      ),
+                                                      const SizedBox(height: 10),
+                                                      Container(
+                                                        width: 100,
+                                                        height: 100,
+                                                        decoration: BoxDecoration(
+                                                          borderRadius: BorderRadius.circular(15),
+                                                          border: Border.all(color: Color(0xFFFF6B35), width: 3),
+                                                          color: Colors.white,
+                                                          boxShadow: [
+                                                            BoxShadow(
+                                                              color: Colors.black.withOpacity(0.2),
+                                                              blurRadius: 8,
+                                                              offset: const Offset(0, 4),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        child: Column(
+                                                          mainAxisAlignment: MainAxisAlignment.center,
+                                                          children: [
+                                                            Expanded(
+                                                              child: Image.asset(
+                                                                currentItemForVerification!.assetPath,
+                                                                fit: BoxFit.contain,
+                                                                errorBuilder: (context, error, stackTrace) {
+                                                                  return Icon(
+                                                                    Icons.shopping_cart,
+                                                                    size: 40,
+                                                                    color: Color(0xFFFF6B35),
+                                                                  );
+                                                                },
+                                                              ),
+                                                            ),
+                                                            const SizedBox(height: 5),
+                                                            Text(
+                                                              currentItemForVerification!.name,
+                                                              style: TextStyle(
+                                                                fontSize: 10,
+                                                                fontWeight: FontWeight.bold,
+                                                                color: Color(0xFFFF6B35),
+                                                              ),
+                                                              textAlign: TextAlign.center,
+                                                              maxLines: 2,
+                                                              overflow: TextOverflow.ellipsis,
+                                                            ),
+                                                            Text(
+                                                              '\$${currentItemForVerification!.price.toStringAsFixed(2)}',
+                                                              style: TextStyle(
+                                                                fontSize: 10,
+                                                                color: Colors.green,
+                                                                fontWeight: FontWeight.bold,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
                                     ),
-                                  ],
-                                ),
+                                  );
+                                },
                               ),
                             ),
                           ),
                           
-                          // Options grid (4 options for level 2)
+                          // Right side - Drag area
                           Expanded(
+                            flex: 1,
                             child: Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 40),
-                              child: GridView.builder(
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 4, // 4 options instead of 3
-                                  childAspectRatio: 1.8, // Make images shorter
-                                  crossAxisSpacing: 15,
-                                  mainAxisSpacing: 15,
-                                ),
-                                itemCount: options.length,
-                                itemBuilder: (context, index) {
-                                  final item = options[index];
-                                  final isSelected = selectedItemName == item.name;
-                                  final showResult = isAnswered;
-                                  final isCorrectAnswer = isCorrect && item.name == selectedItemName;
-                                  final isWrongAnswer = !isCorrect && item.name == selectedItemName;
-                                  
-                                  return GestureDetector(
-                                    onTap: () => _handleItemSelection(item),
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 300),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(15),
-                                        border: Border.all(
-                                          color: showResult
-                                              ? (isCorrectAnswer ? Color(0xFFFF6B35) : Colors.red)
-                                              : Color(0xFFFF6B35),
-                                          width: showResult ? 3 : 2,
+                              margin: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              padding: const EdgeInsets.all(15),
+                              child: Column(
+                                children: [
+                                  const Text(
+                                    'Available Items',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 15),
+                                  if (isWaitingForVerification)
+                                    Expanded(
+                                      child: Center(
+                                        child: Container(
+                                          padding: const EdgeInsets.all(20),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red.withOpacity(0.8),
+                                            borderRadius: BorderRadius.circular(15),
+                                            border: Border.all(color: Colors.red, width: 2),
+                                          ),
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.lock,
+                                                size: 50,
+                                                color: Colors.white,
+                                              ),
+                                              const SizedBox(height: 10),
+                                              Text(
+                                                'Please verify the current item first!',
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                              const SizedBox(height: 5),
+                                              Text(
+                                                'Tap the yellow highlighted item to verify',
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.white,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.1),
-                                            blurRadius: 10,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Expanded(
-                                            child: Image.asset(
-                                              item.assetPath,
-                                              errorBuilder: (context, error, stackTrace) {
-                                                return Icon(
-                                                  Icons.shopping_cart,
-                                                  size: 40,
-                                                  color: Color(0xFFFF6B35),
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            item.name,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFFFF6B35),
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                          if (showResult)
-                                            Icon(
-                                              isCorrectAnswer ? Icons.check_circle : Icons.cancel,
-                                              color: isCorrectAnswer ? Color(0xFFFF6B35) : Colors.red,
-                                              size: 24,
-                                            ),
-                                        ],
                                       ),
                                     ),
-                                  );
-                                },
+                                  if (availableItems.isNotEmpty && !isWaitingForVerification)
+                                    Expanded(
+                                      child: GridView.builder(
+                                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: 2,
+                                          childAspectRatio: 1.8,
+                                          crossAxisSpacing: 10,
+                                          mainAxisSpacing: 10,
+                                        ),
+                                        itemCount: availableItems.length,
+                                        itemBuilder: (context, index) {
+                                          final item = availableItems[index];
+                                          
+                                          return Draggable<String>(
+                                            data: item.name,
+                                            feedback: Container(
+                                              width: 80,
+                                              height: 80,
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.circular(15),
+                                                border: Border.all(color: Color(0xFFFF6B35), width: 2),
+                                                color: Colors.white,
+                                              ),
+                                              child: ClipRRect(
+                                                borderRadius: BorderRadius.circular(13),
+                                                child: Image.asset(
+                                                  item.assetPath,
+                                                  fit: BoxFit.contain,
+                                                  errorBuilder: (context, error, stackTrace) {
+                                                    return Icon(
+                                                      Icons.image,
+                                                      size: 40,
+                                                      color: Color(0xFFFF6B35),
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                            ),
+                                            childWhenDragging: Container(
+                                              width: 80,
+                                              height: 80,
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.circular(15),
+                                                border: Border.all(color: Colors.grey, width: 1),
+                                                color: Colors.grey[300],
+                                              ),
+                                            ),
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.circular(15),
+                                                border: Border.all(
+                                                  color: Color(0xFFFF6B35),
+                                                  width: 3,
+                                                ),
+                                                color: Colors.white,
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Color(0xFFFF6B35).withOpacity(0.3),
+                                                    blurRadius: 8,
+                                                    offset: const Offset(0, 4),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  Expanded(
+                                                    child: Image.asset(
+                                                      item.assetPath,
+                                                      fit: BoxFit.contain,
+                                                      errorBuilder: (context, error, stackTrace) {
+                                                        return Icon(
+                                                          Icons.shopping_cart,
+                                                          size: 30,
+                                                          color: Color(0xFFFF6B35),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 5),
+                                                  Text(
+                                                    item.name,
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Color(0xFFFF6B35),
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                  Text(
+                                                    '\$${item.price.toStringAsFixed(2)}',
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      color: Colors.green,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  if (availableItems.isEmpty && !isWaitingForVerification)
+                                    Expanded(
+                                      child: Center(
+                                        child: Text(
+                                          'All items processed!',
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
                           ),
@@ -525,99 +935,18 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
           ),
           
           // Confetti overlay
-          if (isCorrect)
+          if (scannedItems.isNotEmpty)
             Positioned.fill(
               child: ConfettiWidget(
                 confettiController: _confettiController,
                 blastDirectionality: BlastDirectionality.explosive,
-                emissionFrequency: 0.02,
-                numberOfParticles: 30,
-                gravity: 0.25,
-                colors: [
+                shouldLoop: false,
+                colors: const [
                   Color(0xFFFF6B35),
                   Color(0xFFE53E3E),
                   Color(0xFFC53030),
                   Color(0xFFFFD700),
                 ],
-              ),
-            ),
-          
-          // Level complete dialog
-          if (score >= levelScoreLimit || (currentStep >= categories.length - 1 && isAnswered))
-            Positioned.fill(
-              child: Container(
-                color: Colors.black.withOpacity(0.7),
-                child: Center(
-                  child: AnimatedBuilder(
-                    animation: _dialogScaleAnimation,
-                    builder: (context, child) => Transform.scale(
-                      scale: _dialogScaleAnimation.value,
-                      child: Container(
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.emoji_events,
-                              size: 60,
-                              color: Color(0xFFFF6B35),
-                            ),
-                            const SizedBox(height: 20),
-                            const Text(
-                              'Level 2 Complete!',
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFFF6B35),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Time: $_seconds seconds\nScore: $score',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFFFF6B35),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25),
-                                ),
-                              ),
-                              child: const Text(
-                                'Continue',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
               ),
             ),
         ],

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:confetti/confetti.dart';
+import 'retail_level2_game.dart';
 
 class RetailLevel1Game extends StatelessWidget {
   const RetailLevel1Game({Key? key}) : super(key: key);
@@ -61,14 +62,14 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
   late List<RetailItem> availableItems;
   late List<RetailItem> droppedItems;
   String? draggedItem;
-  String currentCategory = 'Fruits';
+  String currentCategory = 'Snacks';
   int score = 0;
   int attempts = 0;
-  int levelScoreLimit = 40; // 4 steps * 10 points each
+  int levelScoreLimit = 30; // 3 steps * 10 points each
   bool isGameComplete = false;
   int currentStep = 0;
-  List<String> categories = ['Fruits', 'Dairy', 'Snacks', 'Drinks'];
-  String currentMessage = 'Step 1: Drag fruits to the drop area';
+  List<String> categories = ['Snacks', 'Dairy', 'Drinks'];
+  String currentMessage = 'Step 1: Drag snacks to the drop area';
   bool gameStarted = false;
   bool isUnderstood = false;
   
@@ -126,35 +127,25 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
   }
   
   void _initializeGame() {
-    // All retail items
+    // All retail items - only using specified items
     allItems = [
-      // Fruits
-      RetailItem(name: 'Orange', assetPath: 'assets/Orange.png', category: 'Fruits'),
-      RetailItem(name: 'Pineapple', assetPath: 'assets/Pine apple.png', category: 'Fruits'),
-      RetailItem(name: 'Banana', assetPath: 'assets/banana.png', category: 'Fruits'),
-      RetailItem(name: 'Apple', assetPath: 'assets/kitchen1.jpg', category: 'Fruits'),
-      RetailItem(name: 'Grapes', assetPath: 'assets/kitchen1.jpg', category: 'Fruits'),
-      
-      // Dairy
-      RetailItem(name: 'Butter', assetPath: 'assets/Butter.png', category: 'Dairy'),
-      RetailItem(name: 'Cheese', assetPath: 'assets/Cheese.png', category: 'Dairy'),
-      RetailItem(name: 'Milk Bottle', assetPath: 'assets/Milk.png', category: 'Dairy'),
-      RetailItem(name: 'Yogurt', assetPath: 'assets/kitchen1.jpg', category: 'Dairy'),
-      RetailItem(name: 'Ice Cream', assetPath: 'assets/kitchen1.jpg', category: 'Dairy'),
+      // Energy Drinks
+      RetailItem(name: 'Energy Drink', assetPath: 'assets/Energy_Drink.png', category: 'Drinks'),
       
       // Snacks
+      RetailItem(name: 'Garlic Chips', assetPath: 'assets/Garlic_Chips.png', category: 'Snacks'),
+      RetailItem(name: 'Onion Chips', assetPath: 'assets/Onion_chips.png', category: 'Snacks'),
+      RetailItem(name: 'Potato Chips', assetPath: 'assets/Potato_chips.png', category: 'Snacks'),
       RetailItem(name: 'Chocolate', assetPath: 'assets/Chocolate.png', category: 'Snacks'),
-      RetailItem(name: 'Onion Chips', assetPath: 'assets/Onion chips.png', category: 'Snacks'),
-      RetailItem(name: 'Garlic Chips', assetPath: 'assets/Garlic chips.png', category: 'Snacks'),
-      RetailItem(name: 'Cookies', assetPath: 'assets/kitchen1.jpg', category: 'Snacks'),
-      RetailItem(name: 'Popcorn', assetPath: 'assets/kitchen1.jpg', category: 'Snacks'),
+      
+      // Dairy
+      RetailItem(name: 'Milk Bottle', assetPath: 'assets/Milk_bottle.png', category: 'Dairy'),
+      RetailItem(name: 'Cheese', assetPath: 'assets/Cheese.png', category: 'Dairy'),
+      RetailItem(name: 'Butter', assetPath: 'assets/Butter.png', category: 'Dairy'),
       
       // Drinks
-      RetailItem(name: 'Energy Drink', assetPath: 'assets/Energy drink.png', category: 'Drinks'),
-      RetailItem(name: 'Soda Bottle', assetPath: 'assets/Soda bottle.png', category: 'Drinks'),
-      RetailItem(name: 'Coke Bottle', assetPath: 'assets/Coke bottle.png', category: 'Drinks'),
-      RetailItem(name: 'Juice Box', assetPath: 'assets/kitchen1.jpg', category: 'Drinks'),
-      RetailItem(name: 'Water Bottle', assetPath: 'assets/kitchen1.jpg', category: 'Drinks'),
+      RetailItem(name: 'Coke', assetPath: 'assets/Coke.png', category: 'Drinks'),
+      RetailItem(name: 'Soda', assetPath: 'assets/Soda_Bottle.png', category: 'Drinks'),
     ];
     
     _setupCurrentStep();
@@ -773,7 +764,11 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
                         const SizedBox(height: 20),
                         ElevatedButton(
                           onPressed: () {
-                            Navigator.of(context).pop();
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(
+                                builder: (context) => const RetailLevel2Game(),
+                              ),
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Color(0xFFFF6B35),
@@ -784,7 +779,7 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
                             ),
                           ),
                           child: const Text(
-                            'Continue',
+                            'Start Level 2',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
