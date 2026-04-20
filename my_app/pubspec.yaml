@@ -17,6 +17,12 @@ dependencies:
   confetti: ^0.7.0             # Confetti celebrations on correct answers
   cached_network_image: ^3.3.0 # Efficient loading and caching of network images
   tflite_flutter: ^0.12.1     # TensorFlow Lite for on-device ML inference
+  
+  # Firebase dependencies
+  firebase_core: ^3.6.0       # Core Firebase functionality
+  firebase_auth: ^5.1.1       # Firebase Authentication
+  cloud_firestore: ^5.4.4     # Cloud Firestore database
+  firebase_database: ^11.1.4  # Firebase Realtime Database
 
 dev_dependencies:
   flutter_test:

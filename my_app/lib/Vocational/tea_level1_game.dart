@@ -7,13 +7,23 @@ import 'package:confetti/confetti.dart';
 import 'tea_level2_game.dart';
 
 class TeaLevel1Game extends StatefulWidget {
-  const TeaLevel1Game({Key? key}) : super(key: key);
+  final int initialTime;
+  
+  const TeaLevel1Game({Key? key, this.initialTime = 0}) : super(key: key);
 
   @override
   _TeaLevel1GameState createState() => _TeaLevel1GameState();
 }
 
 class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateMixin {
+  // Force landscape immediately
+  _TeaLevel1GameState() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
+  
   // Game variables
   List<TeaIngredient> availableIngredients = [];
   List<String> droppedIngredients = [];
@@ -107,6 +117,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
     
     print('Tea Level 1 initialized with ${availableIngredients.length} ingredients');
     
+    _seconds = widget.initialTime;
     // Start timer
     _startTimer();
   }
@@ -223,6 +234,12 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
     });
   }
   
+  String _formatTime(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+  
   void _showLevelCompleteDialog() {
     showDialog(
       context: context,
@@ -265,7 +282,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
               ),
               const SizedBox(height: 10),
               Text(
-                'Time: $_seconds seconds\nScore: $score',
+                'Time: ${_formatTime(_seconds)}\nScore: $score',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
@@ -275,17 +292,11 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
-                  // Force landscape orientation before navigating
-                  SystemChrome.setPreferredOrientations([
-                    DeviceOrientation.landscapeLeft,
-                    DeviceOrientation.landscapeRight,
-                  ]);
-                  
                   Navigator.of(context).pop();
-                  // Navigate to next level or back to menu
+                  // Navigate to next level (water filling)
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(
-                      builder: (context) => const TeaLevel2Game(),
+                      builder: (context) => TeaLevel2Game(initialTime: _seconds),
                     ),
                   );
                 },
@@ -412,6 +423,12 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
   
   @override
   Widget build(BuildContext context) {
+    // Force landscape orientation at build time
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    
     return Scaffold(
       body: Stack(
         children: [
@@ -480,7 +497,7 @@ class _TeaLevel1GameState extends State<TeaLevel1Game> with TickerProviderStateM
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              'Time: $_seconds',
+                              'Time: ${_formatTime(_seconds)}',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,

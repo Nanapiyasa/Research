@@ -1,44 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'firebase_config.dart';
 import 'Vocational/questionnaire_screen.dart';
-import 'auth_service.dart';
 import 'Vocational/chefLv01.dart';
+import 'auth_service.dart';
+import 'firebase_config.dart';
 import 'services/firebase_service.dart';
+import 'services/game_results_service.dart';
+import 'services/module_progress_service.dart';
 import 'models/student_model.dart';
-
-const FirebaseOptions _androidFirebaseOptions = FirebaseOptions(
-  apiKey: 'AIzaSyC1xoM0x9gWPcSrxFH_uLfV9Hb_lW1Gl2M',
-  appId: '1:221005104430:android:0baedf8ff19036eceda6bf',
-  messagingSenderId: '221005104430',
-  projectId: 'nanapiyasa-student-tracker',
-  storageBucket: 'nanapiyasa-student-tracker.firebasestorage.app',
-);
-
-const FirebaseOptions _webFirebaseOptions = FirebaseOptions(
-  apiKey: 'AIzaSyC1xoM0x9gWPcSrxFH_uLfV9Hb_lW1Gl2M',
-  authDomain: 'nanapiyasa-student-tracker.firebaseapp.com',
-  projectId: 'nanapiyasa-student-tracker',
-  storageBucket: 'nanapiyasa-student-tracker.firebasestorage.app',
-  messagingSenderId: '221005104430',
-  appId: '1:221005104430:web:REPLACE_WITH_NEW_WEB_APP_ID',
-);
-
-FirebaseOptions get _firebaseOptions => kIsWeb ? _webFirebaseOptions : _androidFirebaseOptions;
+import 'debug_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase for all platforms using shared config
+  // Initialize Firebase with proper error handling
   try {
-    await FirebaseConfig.initializeFirebase(options: _firebaseOptions);
-    print('Firebase apps count: ${Firebase.apps.length}');
+    await FirebaseConfig.initializeFirebase();
+    print('Firebase initialized successfully');
   } catch (e) {
     print('Firebase initialization failed: $e');
-    print('Continuing without Firebase...');
+    // App will continue without Firebase
   }
   
   // Allow both orientations (games will set their preferred orientation)
@@ -349,6 +331,19 @@ class _StudentDashboardState extends State<StudentDashboard>
   Future<void> _performLogin(String username, String password) async {
     if (username.isNotEmpty && password.isNotEmpty) {
       try {
+        // Check if Firebase is initialized
+        if (!FirebaseConfig.isInitialized) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Firebase is not initialized. Login temporarily disabled.'),
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+          return;
+        }
+        
         Student? student = await FirebaseService().getStudentByUsername(username);
         if (student == null) {
           if (mounted) {
@@ -400,51 +395,21 @@ class _StudentDashboardState extends State<StudentDashboard>
     if (firstName.isNotEmpty && lastName.isNotEmpty && age.isNotEmpty && username.isNotEmpty && password.isNotEmpty) {
       try {
         // Check if Firebase is initialized
-        if (Firebase.apps.isEmpty) {
-          print('Firebase apps is empty, attempting to initialize...');
-          try {
-            if (Firebase.apps.isEmpty) {
-              print('Initializing Firebase during signup fallback');
-              await Firebase.initializeApp(options: _firebaseOptions);
-              print('Firebase initialized in signup function');
-            }
-          } catch (e) {
-            print('Failed to initialize Firebase in signup: $e');
+        if (!FirebaseConfig.isInitialized) {
+          if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Firebase initialization failed. Please restart app.'),
+                content: Text('Firebase is not initialized. Account creation temporarily disabled.'),
                 duration: Duration(seconds: 3),
               ),
             );
-            return;
           }
-        }
-
-        // Use direct Firestore access
-        print('Creating Firestore instance...');
-        final firestore = FirebaseFirestore.instance;
-        print('Firestore instance created successfully');
-        
-        // Check if Firebase is properly initialized
-        if (Firebase.apps.isEmpty) {
-          print('ERROR: Firebase is not initialized - cannot proceed with Firestore operations');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Firebase not initialized. Please restart app.'),
-              duration: Duration(seconds: 3),
-            ),
-          );
           return;
         }
         
-        print('Checking for existing username...');
         // Check if username already exists
-        QuerySnapshot existingUser = await firestore
-            .collection('students')
-            .where('username', isEqualTo: username)
-            .get();
-            
-        if (existingUser.docs.isNotEmpty) {
+        Student? existingStudent = await FirebaseService().getStudentByUsername(username);
+        if (existingStudent != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Username already exists! Please choose another.'),
@@ -454,57 +419,19 @@ class _StudentDashboardState extends State<StudentDashboard>
           return;
         }
 
-        // Create student data
-        Map<String, dynamic> newStudent = {
-          'firstName': firstName,
-          'lastName': lastName,
-          'age': age,
-          'username': username,
-          'createdAt': DateTime.now().toIso8601String(),
-          'lastLogin': DateTime.now().toIso8601String(),
-          'isActive': true,
-        };
+        // Create new student
+        Student newStudent = Student(
+          firstName: firstName,
+          lastName: lastName,
+          age: age,
+          username: username,
+          createdAt: DateTime.now(),
+        );
 
         // Save to Firebase
-        print('Attempting to save student data to Firestore...');
-        print('Student data: $newStudent');
+        String studentId = await FirebaseService().createStudent(newStudent);
         
-        String studentId;
-        try {
-          Student student = Student(
-            firstName: firstName,
-            lastName: lastName,
-            age: age,
-            username: username,
-            createdAt: DateTime.now(),
-          );
-          studentId = await FirebaseService().createStudent(student);
-          print('Student saved with ID: $studentId');
-        } catch (e) {
-          print('Error saving student data to Firestore: $e');
-          String errorMessage = 'Error creating account';
-          
-          // Handle FirebaseException type conversion issues
-          if (e.toString().contains('FirebaseException')) {
-            errorMessage = 'Firebase connection error - please try again';
-          } else if (e.toString().contains('permission-denied')) {
-            errorMessage = 'Permission denied - check Firebase rules';
-          } else if (e.toString().contains('unavailable')) {
-            errorMessage = 'Firebase service unavailable';
-          } else {
-            errorMessage = 'Error creating account - please try again';
-          }
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMessage),
-              duration: Duration(seconds: 3),
-            ),
-          );
-          return;
-        }
-        
-        // Login user locally with generated student ID
+        // Login the user with the generated document ID
         _authService.login(username, studentId: studentId);
         setState(() {});
         
@@ -679,41 +606,9 @@ class _StudentDashboardState extends State<StudentDashboard>
                       ),
                     ),
                   ),
-                  // CHOOSE YOUR QUEST Title
-                  SliverToBoxAdapter(
-                    child: Column(
-                      children: [
-                        ScaleTransition(
-                          scale: _bannerScaleAnimation,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                            margin: EdgeInsets.only(bottom: 20),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [Colors.yellow.shade400, Colors.amber.shade500],
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.yellow.shade600, width: 3),
-                            ),
-                            child: Text(
-                              "CHOOSE YOUR QUEST",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                letterSpacing: 1.5,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 10),
-                      ],
-                    ),
-                  ),
                   // Module Grid
                   SliverPadding(
-                    padding: EdgeInsets.symmetric(horizontal: spacing),
+                    padding: EdgeInsets.all(padding),
                     sliver: SliverGrid(
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
@@ -722,7 +617,7 @@ class _StudentDashboardState extends State<StudentDashboard>
                         childAspectRatio: 0.85,
                       ),
                       delegate: SliverChildBuilderDelegate(
-                        (context, index) {
+                        builder: (context, index) {
                           return GamePanelCard(
                             module: modules[index],
                             onTap: () {
@@ -746,297 +641,120 @@ class _StudentDashboardState extends State<StudentDashboard>
   }
 }
 
-
-class GamePanelCard extends StatefulWidget {
+class GamePanelCard extends StatelessWidget {
   final Module module;
-  final VoidCallback onTap;
   final double screenWidth;
   final bool isVertical;
 
-  const GamePanelCard({super.key, 
+  const GamePanelCard({
+    super.key,
     required this.module,
-    required this.onTap,
     required this.screenWidth,
-    this.isVertical = false,
+    required this.isVertical,
   });
 
   @override
-  State<GamePanelCard> createState() => _GamePanelCardState();
-}
-
-class _GamePanelCardState extends State<GamePanelCard> {
-  double completionPercentage = 0.0;
-  bool isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchCompletionData();
-  }
-
-  Future<void> _fetchCompletionData() async {
-    try {
-      if (Firebase.apps.isEmpty) {
-        setState(() {
-          isLoading = false;
-        });
-        return;
-      }
-
-      final firestore = FirebaseFirestore.instance;
-      final authService = AuthService();
-      final studentId = authService.currentStudentId;
-      if (studentId == null) {
-        setState(() {
-          isLoading = false;
-        });
-        return;
-      }
-
-      // Query module progress for this specific module
-      final querySnapshot = await firestore
-          .collection('module_progress')
-          .where('studentId', isEqualTo: studentId)
-          .where('moduleKey', isEqualTo: widget.module.key)
-          .orderBy('createdAt', descending: true)
-          .limit(1)
-          .get();
-
-      if (querySnapshot.docs.isNotEmpty) {
-        final doc = querySnapshot.docs.first;
-        final data = doc.data() as Map<String, dynamic>;
-        setState(() {
-          completionPercentage = (data['completionPercentage'] ?? 0.0).toDouble();
-          isLoading = false;
-        });
-      } else {
-        setState(() {
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      print('Error fetching completion data: $e');
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    // Responsive sizing based on screen width
-    final iconSize = widget.isVertical ? widget.screenWidth * 0.19 : widget.screenWidth * 0.16;
-    final padding = widget.screenWidth * 0.03;
-    final borderRadius = widget.screenWidth * 0.03;
-    final titleFontSize = widget.isVertical ? widget.screenWidth * 0.05 : widget.screenWidth * 0.035;
-    final descriptionFontSize = widget.isVertical ? widget.screenWidth * 0.04 : widget.screenWidth * 0.025;
-    
-    return InkWell(
-      borderRadius: BorderRadius.circular(borderRadius),
-      onTap: widget.onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [widget.module.headerColor, widget.module.headerColorLight],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(borderRadius),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 8,
-              offset: Offset(0, 4),
-            ),
-          ],
+    final padding = screenWidth * 0.03;
+    final spacing = screenWidth * 0.02;
+
+    return Container(
+      padding: EdgeInsets.all(padding),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [module.headerColor, module.headerColorLight],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        padding: EdgeInsets.all(padding),
-        child: widget.isVertical
-            ? Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Image with error handling
-                  Image.asset(
-                    widget.module.iconPath,
-                    height: iconSize,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: iconSize,
-                        width: iconSize,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.image_not_supported,
-                          color: Colors.white70,
-                          size: iconSize * 0.6,
-                        ),
-                      );
-                    },
-                  ),
-                  SizedBox(width: padding),
-                  // Text content
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.module.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: titleFontSize,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                        SizedBox(height: padding * 0.4),
-                        Text(
-                          widget.module.description,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: descriptionFontSize,
-                          ),
-                        ),
-                        SizedBox(height: padding * 0.4),
-                        // Completion Rate Bar for vertical layout
-                        _buildCompletionBar(padding),
-                      ],
-                    ),
-                  ),
-                  SizedBox(width: padding * 0.5),
-                  Icon(Icons.arrow_forward, color: Colors.white, size: iconSize * 0.8),
-                ],
-              )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Image with error handling
-                  Image.asset(
-                    widget.module.iconPath,
-                    height: iconSize,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: iconSize,
-                        width: iconSize,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.image_not_supported,
-                          color: Colors.white70,
-                          size: iconSize * 0.6,
-                        ),
-                      );
-                    },
-                  ),
-                  SizedBox(height: padding * 0.6),
-                  Flexible(
-                    child: Text(
-                      widget.module.title,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: titleFontSize,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: padding * 0.5),
-                  Flexible(
-                    child: Text(
-                      widget.module.description,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: descriptionFontSize,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: padding * 0.6),
-                  // Completion Rate Bar
-                  _buildCompletionBar(padding),
-                ],
-              ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.4),
+            blurRadius: 15,
+            offset: Offset(0, 8),
+          ),
+        ],
       ),
-    );
-  }
-
-  Widget _buildCompletionBar(double padding) {
-    if (isLoading) {
-      return Container(
-        height: 4,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.3),
-          borderRadius: BorderRadius.circular(2),
-        ),
-        child: LinearProgressIndicator(
-          backgroundColor: Colors.transparent,
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.5)),
-        ),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Completion',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: padding * 0.6,
-                fontWeight: FontWeight.w500,
-              ),
+      child: Column(
+        children: [
+          // Icon
+          Container(
+            width: screenWidth * (isVertical ? 0.15 : 0.12),
+            height: screenWidth * (isVertical ? 0.15 : 0.12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(15),
             ),
-            Text(
-              '${completionPercentage.round()}%',
+            child: Icon(
+              module.iconPath.isNotEmpty
+                  ? Image.asset(
+                      module.iconPath,
+                      width: screenWidth * 0.08,
+                      height: screenWidth * 0.08,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: screenWidth * 0.08,
+                          height: screenWidth * 0.08,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.extension,
+                            size: screenWidth * 0.05,
+                            color: Colors.grey[600],
+                          ),
+                        );
+                      },
+                    )
+                  : Icon(
+                    Icons.extension,
+                    size: screenWidth * 0.08,
+                    color: Colors.grey[600],
+                  ),
+            ),
+          ),
+          SizedBox(height: spacing),
+
+          // Module Title
+          Flexible(
+            child: Text(
+              module.title,
               style: TextStyle(
-                color: Colors.white,
-                fontSize: padding * 0.6,
+                fontSize: screenWidth * 0.045,
                 fontWeight: FontWeight.bold,
+                color: Colors.white,
+                shadows: [
+                  Shadow(
+                    offset: Offset(2, 2),
+                    blurRadius: 4,
+                    color: Colors.black.withOpacity(0.3),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
-        SizedBox(height: padding * 0.3),
-        Container(
-          height: 6,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(3),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(
-              value: completionPercentage / 100,
-              backgroundColor: Colors.transparent,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                completionPercentage >= 80 
-                    ? Colors.green.shade300 
-                    : completionPercentage >= 50 
-                        ? Colors.yellow.shade300 
-                        : Colors.red.shade300,
-              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-        ),
-      ],
+          SizedBox(height: spacing),
+
+          // Module Description
+          Flexible(
+            child: Text(
+              module.description,
+              style: TextStyle(
+                fontSize: screenWidth * 0.03,
+                color: Colors.white.withOpacity(0.9),
+                height: screenWidth * 0.08,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

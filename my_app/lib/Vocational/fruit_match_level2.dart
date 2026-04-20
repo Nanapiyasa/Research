@@ -6,7 +6,9 @@ import 'package:confetti/confetti.dart';
 import 'fruit_match_level3.dart';
 
 class FruitMatchLevel2Game extends StatelessWidget {
-  const FruitMatchLevel2Game({Key? key}) : super(key: key);
+  final int initialTime;
+  
+  const FruitMatchLevel2Game({Key? key, this.initialTime = 0}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -16,13 +18,15 @@ class FruitMatchLevel2Game extends StatelessWidget {
         primarySwatch: Colors.orange,
         useMaterial3: true,
       ),
-      home: const LandscapeGameLevel2(),
+      home: LandscapeGameLevel2(initialTime: initialTime),
     );
   }
 }
 
 class LandscapeGameLevel2 extends StatelessWidget {
-  const LandscapeGameLevel2({Key? key}) : super(key: key);
+  final int initialTime;
+  
+  const LandscapeGameLevel2({Key? key, required this.initialTime}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -32,12 +36,14 @@ class LandscapeGameLevel2 extends StatelessWidget {
       DeviceOrientation.landscapeRight,
     ]);
 
-    return const GameScreenLevel2();
+    return GameScreenLevel2(initialTime: initialTime);
   }
 }
 
 class GameScreenLevel2 extends StatefulWidget {
-  const GameScreenLevel2({Key? key}) : super(key: key);
+  final int initialTime;
+  
+  const GameScreenLevel2({Key? key, this.initialTime = 0}) : super(key: key);
 
   @override
   State<GameScreenLevel2> createState() => _GameScreenLevel2State();
@@ -70,6 +76,14 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
   // Animation for instructions
   late AnimationController _instructionAnimationController;
   late Animation<double> _instructionScaleAnimation;
+  
+  // Sparkle animation for fruit transformation
+  AnimationController? _sparkleAnimationController;
+  Animation<double>? _sparkleScaleAnimation;
+  Animation<double>? _sparkleOpacityAnimation;
+  
+  // Track which fruit is being animated
+  int? _animatingFruitIndex;
 
   @override
   void initState() {
@@ -90,6 +104,28 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
     ).animate(CurvedAnimation(
       parent: _instructionAnimationController,
       curve: Curves.elasticOut,
+    ));
+    
+    // Initialize sparkle animation
+    _sparkleAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    _sparkleScaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.3,
+    ).animate(CurvedAnimation(
+      parent: _sparkleAnimationController!,
+      curve: Curves.elasticOut,
+    ));
+    
+    _sparkleOpacityAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _sparkleAnimationController!,
+      curve: Curves.easeInOut,
     ));
     
     // Initialize knife animation
@@ -123,6 +159,7 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
     // Start continuous knife animation
     _continuousKnifeAnimationController.repeat(reverse: true);
     
+    _seconds = widget.initialTime;
     _initializeFruits();
     _startTimer();
     
@@ -187,18 +224,31 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
 
     // Only proceed if we haven't completed all 3 steps
     if (currentStep <= 3) {
-      setState(() {
-        // Transform the current fruit from covered to uncovered
-        if (currentStep - 1 < allFruits.length) {
-          // Change the fruit from covered to uncovered
-          allFruits[currentStep - 1].isUncovered = true;
-          score += 10;
+      // Set the animating fruit index
+      _animatingFruitIndex = currentStep - 1;
+      
+      // Start sparkle animation
+      _sparkleAnimationController?.forward().then((_) {
+        if (mounted) {
+          setState(() {
+            // Transform the current fruit from covered to uncovered
+            if (currentStep - 1 < allFruits.length) {
+              // Change the fruit from covered to uncovered
+              allFruits[currentStep - 1].isUncovered = true;
+              score += 10;
+              
+              // Trigger confetti for successful uncover
+              _confettiController.play();
+            }
+          });
           
-          // Trigger confetti for successful uncover
-          _confettiController.play();
+          // Reverse sparkle animation
+          _sparkleAnimationController?.reverse().then((_) {
+            _animatingFruitIndex = null;
+          });
           
           // Wait a moment to show the transformation, then move to next step
-          Future.delayed(const Duration(milliseconds: 3000), () {
+          Future.delayed(const Duration(milliseconds: 2000), () {
             if (mounted) {
               setState(() {
                 // Move to next step
@@ -210,198 +260,17 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
                 }
               });
               
-              // Show step completion popup
-              _showStepCompleteDialog();
+              // Step completion popup removed
               
               // Check if all 3 steps are completed
               if (currentStep > 3) {
-                Future.delayed(const Duration(milliseconds: 2000), () {
-                  if (mounted) {
-                    _showLevelCompleteDialog();
-                  }
-                });
+                // Level completion dialog removed
               }
             }
           });
         }
       });
     }
-  }
-
-  void _showStepCompleteDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.all(25),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.orange, Colors.deepOrange],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: const Icon(
-                  Icons.check_circle,
-                  size: 50,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 15),
-              const Text(
-                'Step Complete!',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Great job! Fruit uncovered successfully!',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white.withOpacity(0.9),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.orange,
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  elevation: 5,
-                ),
-                child: const Text(
-                  'Continue',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showLevelCompleteDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.all(25),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF4CAF50), Color(0xFF45A049)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: const Icon(
-                  Icons.emoji_events,
-                  size: 50,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 15),
-              const Text(
-                'Level 2 Complete!',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Congratulations! You prepared the fruit salad with a score of $score!',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white.withOpacity(0.9),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const FruitMatchLevel3Game(),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Color(0xFF4CAF50),
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  elevation: 5,
-                ),
-                child: const Text(
-                  'Awesome!',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   @override
@@ -415,6 +284,7 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
     _knifeAnimationController.dispose();
     _continuousKnifeAnimationController.dispose();
     _instructionAnimationController.dispose();
+    _sparkleAnimationController?.dispose();
     _confettiController.dispose();
     _timer?.cancel(); // Cancel timer
     super.dispose();
@@ -826,10 +696,10 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: isSmallScreen ? 2 : 3, // Back to original layout
-          mainAxisSpacing: 20,
-          crossAxisSpacing: 20,
-          childAspectRatio: 0.7, // Even larger images
+          crossAxisCount: isSmallScreen ? 2 : 3, // Back to 3 columns for large screens
+          mainAxisSpacing: 15,
+          crossAxisSpacing: 15,
+          childAspectRatio: 0.75, // Moderately larger images
         ),
         itemCount: currentDisplayFruits.length,
         itemBuilder: (context, index) {
@@ -886,7 +756,13 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
               }
             }
             
-            return ClipRRect(
+            // Check if this fruit is being animated with sparkle effect
+            final fruitIndex = currentDisplayFruits.indexOf(fruit);
+            final isAnimating = _animatingFruitIndex != null && 
+                               fruitIndex < allFruits.length && 
+                               _animatingFruitIndex == allFruits.indexOf(fruit);
+            
+            Widget fruitWidget = ClipRRect(
               borderRadius: BorderRadius.circular(15),
               child: Image.asset(
                 assetPath,
@@ -899,6 +775,52 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
                 },
               ),
             );
+            
+            // Apply sparkle animation if this fruit is being transformed
+            if (isAnimating && _sparkleAnimationController != null) {
+              return AnimatedBuilder(
+                animation: _sparkleAnimationController!,
+                builder: (context, child) {
+                  return Stack(
+                    children: [
+                      // Sparkle effect
+                      if (_sparkleAnimationController!.isAnimating)
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(15),
+                              gradient: RadialGradient(
+                                center: Alignment.center,
+                                radius: _sparkleScaleAnimation!.value,
+                                colors: [
+                                  Colors.white.withOpacity(_sparkleOpacityAnimation!.value * 0.8),
+                                  Colors.yellow.withOpacity(_sparkleOpacityAnimation!.value * 0.6),
+                                  Colors.transparent,
+                                ],
+                                stops: [0.0, 0.5, 1.0],
+                              ),
+                            ),
+                          ),
+                        ),
+                      // Sparkle particles
+                      if (_sparkleAnimationController!.isAnimating)
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: SparklePainter(_sparkleAnimationController!.value),
+                          ),
+                        ),
+                      // Fruit image with scale animation
+                      Transform.scale(
+                        scale: _sparkleScaleAnimation!.value,
+                        child: fruitWidget,
+                      ),
+                    ],
+                  );
+                },
+              );
+            }
+            
+            return fruitWidget;
           }
         },
       ),
@@ -1029,6 +951,58 @@ class _GameScreenLevel2State extends State<GameScreenLevel2> with TickerProvider
       ),
     );
   }
+}
+
+class SparklePainter extends CustomPainter {
+  final double progress;
+
+  SparklePainter(this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.8)
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = math.min(size.width, size.height) / 2;
+
+    // Draw sparkle lines
+    for (int i = 0; i < 8; i++) {
+      final angle = (i * math.pi / 4);
+      final startRadius = radius * 0.3 * progress;
+      final endRadius = radius * 0.8 * progress;
+      
+      final startX = center.dx + math.cos(angle) * startRadius;
+      final startY = center.dy + math.sin(angle) * startRadius;
+      final endX = center.dx + math.cos(angle) * endRadius;
+      final endY = center.dy + math.sin(angle) * endRadius;
+
+      canvas.drawLine(
+        Offset(startX, startY),
+        Offset(endX, endY),
+        paint,
+      );
+    }
+
+    // Draw sparkle dots
+    final dotPaint = Paint()
+      ..color = Colors.white.withOpacity(0.9)
+      ..style = PaintingStyle.fill;
+
+    for (int i = 0; i < 12; i++) {
+      final angle = (i * math.pi / 6);
+      final dotRadius = radius * 0.6 * progress;
+      final dotX = center.dx + math.cos(angle) * dotRadius;
+      final dotY = center.dy + math.sin(angle) * dotRadius;
+
+      canvas.drawCircle(Offset(dotX, dotY), 3.0 * progress, dotPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
 class FruitLevel2 {

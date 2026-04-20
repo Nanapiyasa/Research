@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:confetti/confetti.dart';
+import 'boiling_screen.dart';
 
 class TeaLevel2Game extends StatefulWidget {
-  const TeaLevel2Game({Key? key}) : super(key: key);
+  final int initialTime;
+  
+  const TeaLevel2Game({Key? key, this.initialTime = 0}) : super(key: key);
 
   @override
   _TeaLevel2GameState createState() => _TeaLevel2GameState();
@@ -112,6 +115,7 @@ class _TeaLevel2GameState extends State<TeaLevel2Game> with TickerProviderStateM
     
     print('Tea Level 2 initialized with ${availableIngredients.length} ingredients');
     
+    _seconds = widget.initialTime;
     // Start timer
     _startTimer();
   }
@@ -191,6 +195,12 @@ class _TeaLevel2GameState extends State<TeaLevel2Game> with TickerProviderStateM
     });
   }
   
+  String _formatTime(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+  
   void _showLevelCompleteDialog() {
     showDialog(
       context: context,
@@ -233,7 +243,7 @@ class _TeaLevel2GameState extends State<TeaLevel2Game> with TickerProviderStateM
               ),
               const SizedBox(height: 10),
               Text(
-                'Time: $_seconds seconds\nScore: $score',
+                'Time: ${_formatTime(_seconds)}\nScore: $score',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
@@ -244,6 +254,12 @@ class _TeaLevel2GameState extends State<TeaLevel2Game> with TickerProviderStateM
               ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).pop();
+                  // Navigate to power button screen after water filling
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (context) => BoilingScreen(initialTime: _seconds),
+                    ),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
@@ -254,7 +270,7 @@ class _TeaLevel2GameState extends State<TeaLevel2Game> with TickerProviderStateM
                   ),
                 ),
                 child: const Text(
-                  'Continue',
+                  'Next Step',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -270,10 +286,10 @@ class _TeaLevel2GameState extends State<TeaLevel2Game> with TickerProviderStateM
   
   @override
   void dispose() {
-    // Reset to portrait orientation when exiting the game
+    // Keep landscape orientation when navigating to power button screen
     SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
     ]);
     
     if (_animationsInitialized) {
@@ -440,7 +456,7 @@ class _TeaLevel2GameState extends State<TeaLevel2Game> with TickerProviderStateM
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              'Time: $_seconds',
+                              'Time: ${_formatTime(_seconds)}',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,

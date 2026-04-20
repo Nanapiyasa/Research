@@ -13,7 +13,7 @@ class CleaningLevel1Game extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Cleaning Item Placement Training',
+      title: 'Cleaning Categorization Game',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         useMaterial3: true,
@@ -29,10 +29,12 @@ class LandscapeGame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Force landscape orientation
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
+
     return const CleaningGameScreen();
   }
 }
@@ -57,26 +59,35 @@ class CleaningItem {
 }
 
 class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProviderStateMixin {
+  // Game variables
   late List<CleaningItem> allItems;
   late List<CleaningItem> availableItems;
   late List<CleaningItem> droppedItems;
+  String? draggedItem;
   String currentCategory = 'Cleaning Tools';
   int score = 0;
-  int attempts = 1;
+  int attempts = 1; // Default attempt count is 1
+  int levelScoreLimit = 30; // 3 steps * 10 points each
   bool isGameComplete = false;
   int currentStep = 0;
   List<String> categories = ['Cleaning Tools', 'Waste', 'Recycling'];
-  String currentMessage = 'Step 1: Learn to place cleaning tools in the correct area';
+  String currentMessage = 'Step 1: Drag cleaning tools to the drop area';
   bool gameStarted = false;
   bool isUnderstood = false;
   
+  // Timer variables
   int _seconds = 0;
   Timer? _timer;
   
+  // Animation controllers
   late AnimationController _dropAnimationController;
   late Animation<double> _dropAnimation;
   late AnimationController _popController;
+  
+  // Confetti controller
   late ConfettiController _confettiController;
+  
+  // Animation state
   bool _animationsInitialized = false;
 
   @override
@@ -84,10 +95,12 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
     super.initState();
     _initializeGame();
     
+    // Initialize confetti controller
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 3),
     );
     
+    // Initialize drop animation
     _dropAnimationController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
@@ -102,21 +115,26 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
     );
     
     _startTimer();
+    
     _animationsInitialized = true;
   }
   
   void _initializeGame() {
+    // All cleaning items
     allItems = [
+      // Cleaning Tools
       CleaningItem(name: 'Broom', assetPath: 'assets/Broom.jpeg', category: 'Cleaning Tools'),
       CleaningItem(name: 'Mop', assetPath: 'assets/Mob.jpeg', category: 'Cleaning Tools'),
       CleaningItem(name: 'Bucket', assetPath: 'assets/Bucket.png', category: 'Cleaning Tools'),
       CleaningItem(name: 'Sponge', assetPath: 'assets/Sponge.png', category: 'Cleaning Tools'),
       
+      // Waste
       CleaningItem(name: 'Trash Bag', assetPath: 'assets/Trash_Bag.png', category: 'Waste'),
       CleaningItem(name: 'Food Waste', assetPath: 'assets/Food_Waste.png', category: 'Waste'),
       CleaningItem(name: 'Paper Waste', assetPath: 'assets/Paper_Waste.png', category: 'Waste'),
       CleaningItem(name: 'Plastic Waste', assetPath: 'assets/Plastic_Waste.png', category: 'Waste'),
       
+      // Recycling
       CleaningItem(name: 'Glass Bottle', assetPath: 'assets/Glass_Bottle.png', category: 'Recycling'),
       CleaningItem(name: 'Aluminum Can', assetPath: 'assets/Aluminum_Can.png', category: 'Recycling'),
       CleaningItem(name: 'Cardboard', assetPath: 'assets/Cardboard.png', category: 'Recycling'),
@@ -127,10 +145,12 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
   }
   
   void _setupCurrentStep() {
+    // Get items for current category
     final categoryItems = allItems.where((item) => item.category == currentCategory).toList();
     final random = math.Random();
     categoryItems.shuffle(random);
     
+    // Select 4 items to drag (2 from current category, 2 from other categories)
     final currentCategoryItems = categoryItems.take(2).toList();
     final otherCategoryItems = allItems
         .where((item) => item.category != currentCategory)
@@ -142,7 +162,7 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
     droppedItems = [];
     
     setState(() {
-      currentMessage = 'Step ${currentStep + 1}: Learn to place ${currentCategory.toLowerCase()} in the correct area';
+      currentMessage = 'Step ${currentStep + 1}: Drag ${currentCategory.toLowerCase()} to the drop area';
     });
   }
   
@@ -162,19 +182,6 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
     return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
   
-  String _getCategoryDescription(String category) {
-    switch (category) {
-      case 'Cleaning Tools':
-        return 'Items used for cleaning surfaces and areas';
-      case 'Waste':
-        return 'Items that should be thrown away as trash';
-      case 'Recycling':
-        return 'Items that can be recycled and reused';
-      default:
-        return 'Place items in their correct category';
-    }
-  }
-  
   void _handleItemDrop(String itemName) {
     final item = availableItems.firstWhere((item) => item.name == itemName);
     
@@ -183,14 +190,16 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
         droppedItems.add(item);
         availableItems.removeWhere((i) => i.name == itemName);
         score += 10;
-        currentMessage = 'Excellent! ${item.name} correctly placed in ${currentCategory}. Keep learning!';
         
+        // Animate drop
         _dropAnimationController.forward().then((_) {
           _dropAnimationController.reverse();
         });
         
+        // Trigger confetti
         _confettiController.play();
         
+        // Check if step is complete
         if (droppedItems.length >= 2) {
           Future.delayed(const Duration(seconds: 2), () {
             if (currentStep < categories.length - 1) {
@@ -206,14 +215,15 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
         }
       });
     } else {
+      // Wrong item - show feedback and increment attempts
       setState(() {
-        attempts++;
-        currentMessage = 'Wrong placement! ${item.name} belongs in ${item.category}, not ${currentCategory}. Try again!';
+        attempts++; // Increment attempt count for wrong answer
+        currentMessage = 'Not a ${currentCategory.toLowerCase()}! Try again!';
       });
       
-      Future.delayed(const Duration(seconds: 3), () {
+      Future.delayed(const Duration(seconds: 2), () {
         setState(() {
-          currentMessage = 'Step ${currentStep + 1}: Learn to place ${currentCategory.toLowerCase()} in the correct area';
+          currentMessage = 'Step ${currentStep + 1}: Drag ${currentCategory.toLowerCase()} to the drop area';
         });
       });
     }
@@ -230,6 +240,7 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
       
       print('DEBUG: Saving cleaning level 1 results for student: $studentId');
       
+      // Save activity time for tracking
       final completionTime = _seconds;
       final percentage = ((score / (categories.length * 10)) * 100).round();
       
@@ -246,6 +257,7 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
       final activityDoc = await firestore.collection('activities').add(activityData);
       print('DEBUG: Cleaning activity time saved successfully');
       
+      // Store individual level data using new service with activityId
       await StudentDataService.storeLevelData(
         studentId: studentId,
         level: 1,
@@ -253,7 +265,7 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
         attempts: attempts,
         timeSpent: _seconds,
         difficultyLevel: 'Easy',
-        activityId: activityDoc.id,
+        activityId: activityDoc.id, // Foreign key to activities collection
       );
       
       print('DEBUG: Cleaning Level 1 data stored successfully');
@@ -315,7 +327,7 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
               const SizedBox(height: 10),
               Builder(
                 builder: (context) {
-                  final actualScore = score > 30 ? 30 : score;
+                  final actualScore = score > 30 ? 30 : score; // Cap score at maximum 30
                   final statsText = 'Time: ${_formatTime(_seconds)}\nScore: $actualScore/30\nAttempts: $attempts';
                   return Text(
                     statsText,
@@ -340,6 +352,8 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
               ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).pop();
+                  // TODO: Navigate to cleaning level 2 when it's created
+                  // For now, just go back to game menu
                   Navigator.of(context).pushReplacementNamed('/game_menu');
                 },
                 style: ElevatedButton.styleFrom(
@@ -367,6 +381,7 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
   
   @override
   void dispose() {
+    // Reset to portrait orientation when exiting game
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
@@ -383,125 +398,9 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
     super.dispose();
   }
   
-  Widget _buildDragItem(CleaningItem item) {
-    final isDraggable = item.category == currentCategory;
-    
-    return Draggable<String>(
-      data: item.name,
-      feedback: Material(
-        color: Colors.transparent,
-        child: Container(
-          width: 100,
-          height: 60,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Image.asset(
-                  item.assetPath,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(
-                      Icons.cleaning_services,
-                      size: 30,
-                      color: Color(0xFF2196F3),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                item.name,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2196F3),
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ),
-      childWhenDragging: Container(
-        decoration: BoxDecoration(
-          color: Colors.grey.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(10),
-        ),
-      ),
-      child: AnimatedBuilder(
-        animation: _dropAnimation,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: isDraggable ? _dropAnimation.value : 1.0,
-            child: Container(
-              decoration: BoxDecoration(
-                color: isDraggable ? Colors.white : Colors.grey.withOpacity(0.7),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: isDraggable ? Color(0xFF2196F3) : Colors.grey,
-                  width: 2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Image.asset(
-                      item.assetPath,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Icon(
-                          Icons.cleaning_services,
-                          size: 30,
-                          color: isDraggable ? Color(0xFF2196F3) : Colors.grey,
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item.name,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: isDraggable ? Color(0xFF2196F3) : Colors.grey,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-  
   @override
   Widget build(BuildContext context) {
+    // Force landscape orientation at build time
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
@@ -510,6 +409,7 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
     return Scaffold(
       body: Stack(
         children: [
+          // Background
           Container(
             decoration: BoxDecoration(
               image: DecorationImage(
@@ -519,9 +419,11 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
             ),
           ),
           
+          // Main content
           SafeArea(
             child: Column(
               children: [
+                // Score and Time Header
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 4),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -567,6 +469,7 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
                   ),
                 ),
                 
+                // Message display
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -612,10 +515,11 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
                           onPressed: () {
                             setState(() {
                               isUnderstood = true;
-                              currentMessage = 'Great! Now learn to place ${currentCategory.toLowerCase()} in the correct area';
+                              currentMessage = 'Great! Now start dragging ${currentCategory.toLowerCase()} to the drop area';
                               gameStarted = true;
                             });
                             
+                            // Pop out animation
                             _popController.forward().then((_) {
                               _popController.reverse();
                             });
@@ -640,10 +544,12 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
                   ),
                 ),
                 
+                // Game area - Left Drop Area + Right Drag Area
                 Expanded(
                   child: gameStarted
                     ? Row(
                         children: [
+                          // Left side - Drop area
                           Expanded(
                             flex: 1,
                             child: Container(
@@ -671,36 +577,22 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
                                       ],
                                     ),
                                     child: Column(
-                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        const Icon(
+                                        Icon(
                                           Icons.cleaning_services,
                                           size: 60,
                                           color: Color(0xFF2196F3),
                                         ),
                                         const SizedBox(height: 15),
-                                        Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              'Drop ${currentCategory} Here',
-                                              style: const TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                                color: Color(0xFF2196F3),
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                            const SizedBox(height: 5),
-                                            Text(
-                                              _getCategoryDescription(currentCategory),
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey.shade600,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ],
+                                        Text(
+                                          'Drop ${currentCategory} Here',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF2196F3),
+                                          ),
+                                          textAlign: TextAlign.center,
                                         ),
                                         const SizedBox(height: 10),
                                         Text(
@@ -711,6 +603,7 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
                                           ),
                                         ),
                                         const SizedBox(height: 15),
+                                        // Show dropped items
                                         if (droppedItems.isNotEmpty)
                                           Wrap(
                                             spacing: 10,
@@ -730,7 +623,7 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
                                                     item.assetPath,
                                                     fit: BoxFit.contain,
                                                     errorBuilder: (context, error, stackTrace) {
-                                                      return const Icon(
+                                                      return Icon(
                                                         Icons.cleaning_services,
                                                         size: 30,
                                                         color: Color(0xFF2196F3),
@@ -749,6 +642,7 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
                             ),
                           ),
                            
+                          // Right side - Drag area
                           Expanded(
                             flex: 1,
                             child: Container(
@@ -780,7 +674,116 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
                                         ),
                                         itemCount: availableItems.length,
                                         itemBuilder: (context, index) {
-                                          return _buildDragItem(availableItems[index]);
+                                          final item = availableItems[index];
+                                          final isDraggable = item.category == currentCategory;
+                                          
+                                          return Draggable<String>(
+                                            data: item.name,
+                                            feedback: Container(
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(10),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black.withOpacity(0.3),
+                                                    blurRadius: 10,
+                                                    offset: const Offset(0, 5),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  Expanded(
+                                                    child: Image.asset(
+                                                      item.assetPath,
+                                                      fit: BoxFit.contain,
+                                                      errorBuilder: (context, error, stackTrace) {
+                                                        return Icon(
+                                                          Icons.cleaning_services,
+                                                          size: 30,
+                                                          color: Color(0xFF2196F3),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    item.name,
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Color(0xFF2196F3),
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            childWhenDragging: Container(
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey.withOpacity(0.5),
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                            ),
+                                            child: AnimatedBuilder(
+                                              animation: _dropAnimation,
+                                              builder: (context, child) {
+                                                return Transform.scale(
+                                                  scale: isDraggable ? _dropAnimation.value : 1.0,
+                                                  child: Container(
+                                                    decoration: BoxDecoration(
+                                                      color: isDraggable ? Colors.white : Colors.grey.withOpacity(0.7),
+                                                      borderRadius: BorderRadius.circular(10),
+                                                      border: Border.all(
+                                                        color: isDraggable ? Color(0xFF2196F3) : Colors.grey,
+                                                        width: 2,
+                                                      ),
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: Colors.black.withOpacity(0.1),
+                                                          blurRadius: 4,
+                                                          offset: const Offset(0, 2),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    child: Column(
+                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      children: [
+                                                        Expanded(
+                                                          child: Image.asset(
+                                                            item.assetPath,
+                                                            fit: BoxFit.contain,
+                                                            errorBuilder: (context, error, stackTrace) {
+                                                              return Icon(
+                                                                Icons.cleaning_services,
+                                                                size: 30,
+                                                                color: isDraggable ? Color(0xFF2196F3) : Colors.grey,
+                                                              );
+                                                            },
+                                                          ),
+                                                        ),
+                                                        const SizedBox(height: 4),
+                                                        Text(
+                                                          item.name,
+                                                          style: TextStyle(
+                                                            fontSize: 10,
+                                                            fontWeight: FontWeight.bold,
+                                                            color: isDraggable ? Color(0xFF2196F3) : Colors.grey,
+                                                          ),
+                                                          textAlign: TextAlign.center,
+                                                          maxLines: 2,
+                                                          overflow: TextOverflow.ellipsis,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          );
                                         },
                                       ),
                                     ),
@@ -814,7 +817,7 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
                               ),
                               const SizedBox(height: 20),
                               const Text(
-                                'Cleaning Item Placement Training',
+                                'Get Ready!',
                                 style: TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
@@ -823,7 +826,7 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
                               ),
                               const SizedBox(height: 10),
                               const Text(
-                                'Learn to place cleaning items in their correct areas',
+                                'Click "Understood" to start the game',
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: Color(0xFF2196F3),
@@ -839,6 +842,7 @@ class _CleaningGameScreenState extends State<CleaningGameScreen> with TickerProv
             ),
           ),
           
+          // Confetti
           Positioned.fill(
             child: ConfettiWidget(
               confettiController: _confettiController,

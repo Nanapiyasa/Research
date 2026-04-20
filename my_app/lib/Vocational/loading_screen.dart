@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'main.dart';
+import '../main.dart';
 
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});

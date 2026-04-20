@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'game_menu_new.dart';
 import 'model_service.dart';
+import '../auth_service.dart';
 
 // Question model
 class Question {
@@ -229,6 +232,73 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
     }
     
     return scores;
+  }
+
+  Future<void> _saveQuestionnaireResults(
+    String predictedModule, 
+    double confidence, 
+    Map<String, double> allScores
+  ) async {
+    try {
+      if (Firebase.apps.isEmpty) {
+        print('Firebase not initialized - skipping questionnaire save');
+        return;
+      }
+
+      final firestore = FirebaseFirestore.instance;
+      final authService = AuthService();
+      final studentId = authService.currentStudentId;
+      
+      // Only save if user is authenticated
+      if (studentId == null || studentId.isEmpty) {
+        print('Cannot save questionnaire - user not authenticated');
+        return;
+      }
+
+      // Create questionnaire results document
+      final questionnaireData = {
+        'studentId': studentId,
+        'questionnaireType': 'vocational_assessment',
+        'responses': {
+          'q1': selectedAnswers[0], // "Does the student enjoy helping others?"
+          'q2': selectedAnswers[1], // "Does the student like arranging or organizing things?"
+          'q3': selectedAnswers[2], // "Does the student enjoy interacting with people?"
+          'q4': selectedAnswers[3], // "Does the student like making or preparing things?"
+          'q5': selectedAnswers[4], // "Can the student follow simple instructions?"
+          'q6': selectedAnswers[5], // "Can the student remember daily routines?"
+          'q7': selectedAnswers[6], // "Can the student work independently?"
+          'q8': selectedAnswers[7], // "Can the student handle money?"
+          'q9': selectedAnswers[8], // "Can the student solve problems?"
+        },
+        'scores': allScores,
+        'recommendations': {
+          'primary': predictedModule,
+          'secondary': _getSecondaryRecommendations(allScores),
+          'confidence': confidence,
+        },
+        'completedAt': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+
+      // Save to questionnaire_results collection
+      await firestore.collection('questionnaire_results').add(questionnaireData);
+      print('Questionnaire results saved successfully for student: $studentId');
+      
+    } catch (e) {
+      print('Error saving questionnaire results: $e');
+      // Continue with navigation even if save fails
+    }
+  }
+
+  List<String> _getSecondaryRecommendations(Map<String, double> allScores) {
+    final sortedScores = allScores.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    
+    return sortedScores
+        .skip(1) // Skip the primary recommendation
+        .take(2)  // Take top 2 secondary recommendations
+        .map((entry) => entry.key)
+        .toList();
   }
 
   void _showCompletionDialog() {
@@ -960,10 +1030,14 @@ class _QuestionnaireScreenState extends State<QuestionnaireScreen>
                       ),
                     ),
                     ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         print('Continue button pressed');
                         print('Navigating to GameMenuNew with module: $predictedModule');
                         print('Complete results: $completeResults');
+                        
+                        // Save questionnaire results to Firebase
+                        await _saveQuestionnaireResults(predictedModule, confidence, allScores);
+                        
                         Navigator.of(context).pop();
                         Navigator.of(context).pushReplacement(
                           MaterialPageRoute(builder: (context) => GameMenuNew(

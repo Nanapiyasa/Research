@@ -1,71 +1,49 @@
 import 'package:flutter/material.dart';
-import 'Vocational/chefLv01.dart';
-import 'Vocational/retailLv01.dart';
-import 'Vocational/cleaningLv01.dart';
-import 'welcome_screen.dart';
+import 'fruit_salad_level01_screen.dart';
+import 'tea_level1_game.dart';
 
-class GameMenuNew extends StatefulWidget {
+class GameMenuMain extends StatefulWidget {
   final Map<String, dynamic>? questionnaireResults;
   final String? predictedModule;
 
-  const GameMenuNew({super.key, this.questionnaireResults, this.predictedModule});
+  const GameMenuMain({super.key, this.questionnaireResults, this.predictedModule});
 
   @override
-  State<GameMenuNew> createState() => _GameMenuNewState();
+  State<GameMenuMain> createState() => _GameMenuMainState();
 }
 
-class _GameMenuNewState extends State<GameMenuNew> {
+class _GameMenuMainState extends State<GameMenuMain> {
   int totalScore = 0;
   int gamesPlayed = 0;
 
-  late List<GameTile> games;
+  final List<GameTile> games = [
+    GameTile(
+      title: 'Fruit Salad',
+      icon: '🥗',
+      color: Color(0xFFFF6B35),
+      level: 1,
+      progress: 0.3,
+    ),
+    GameTile(
+      title: 'Tea',
+      icon: '🍵',
+      color: Color(0xFF004E89),
+      level: 1,
+      progress: 0.0,
+    ),
+    GameTile(
+      title: 'Pastry',
+      icon: '🥐',
+      color: Color(0xFF1B998B),
+      level: 1,
+      progress: 0.0,
+    ),
+  ];
 
   @override
   void initState() {
     super.initState();
-    _initializeGamesWithConfidence();
     _showRecommendationIfNeeded();
-  }
-
-  void _initializeGamesWithConfidence() {
-    // Default confidence values
-    double chefConfidence = 0.3;
-    double retailConfidence = 0.0;
-    double cleaningConfidence = 0.0;
-
-    // Use confidence values from questionnaire results if available
-    if (widget.questionnaireResults != null) {
-      Map<String, double> allScores = widget.questionnaireResults!['allScores'] ?? {};
-      chefConfidence = allScores['chef'] ?? 0.3;
-      retailConfidence = allScores['retail'] ?? 0.0;
-      cleaningConfidence = allScores['cleaning'] ?? 0.0;
-      
-      print('Using confidence scores: Chef=${(chefConfidence * 100).toStringAsFixed(1)}%, Retail=${(retailConfidence * 100).toStringAsFixed(1)}%, Cleaning=${(cleaningConfidence * 100).toStringAsFixed(1)}%');
-    }
-
-    games = [
-      GameTile(
-        title: 'Chef',
-        icon: '👨‍🍳',
-        color: Color(0xFFFF6B35),
-        level: 1,
-        progress: chefConfidence,
-      ),
-      GameTile(
-        title: 'Retail',
-        icon: '🛍️',
-        color: Color(0xFF004E89),
-        level: 1,
-        progress: retailConfidence,
-      ),
-      GameTile(
-        title: 'Cleaning',
-        icon: '🧹',
-        color: Color(0xFF1B998B),
-        level: 1,
-        progress: cleaningConfidence,
-      ),
-    ];
   }
 
   void _showRecommendationIfNeeded() {
@@ -100,7 +78,7 @@ class _GameMenuNewState extends State<GameMenuNew> {
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/background.jpg'), // Your background image
+            image: AssetImage('assets/LevelBackground.png'), // Your background image
             fit: BoxFit.cover,
           ),
           gradient: LinearGradient(
@@ -133,7 +111,7 @@ class _GameMenuNewState extends State<GameMenuNew> {
                           onPressed: () => Navigator.pop(context),
                         ),
                         Text(
-                          'Game Menu',
+                          'Choose Your Quest',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 24,
@@ -189,21 +167,18 @@ class _GameMenuNewState extends State<GameMenuNew> {
   Widget _buildGameTile(GameTile game) {
     return GestureDetector(
       onTap: () {
-        if (game.title == 'Chef') {
+        if (game.title == 'Fruit Salad') {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => WelcomeScreen()),
+            MaterialPageRoute(builder: (context) => FruitSaladLevel01Screen()),
           );
-        } else if (game.title == 'Retail') {
+        } else if (game.title == 'Tea') {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => RetailWelcomeScreen()),
+            MaterialPageRoute(builder: (context) => TeaLevel1Game()),
           );
-        } else if (game.title == 'Cleaning') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => CleaningWelcomeScreen()),
-          );
+        } else {
+          _showGameDialog(game);
         }
       },
       child: Container(
@@ -211,34 +186,56 @@ class _GameMenuNewState extends State<GameMenuNew> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [game.color, game.color.withValues(alpha: 0.7)],
+            colors: [
+              game.color,
+              game.color.withValues(alpha: 0.85),
+              game.color.withValues(alpha: 0.7),
+            ],
+            stops: [0.0, 0.6, 1.0],
           ),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: game.color.withValues(alpha: 0.4),
-              blurRadius: 12,
-              offset: Offset(0, 6),
+              color: game.color.withValues(alpha: 0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+              spreadRadius: 2,
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Stack(
           children: [
-            // Background icon
+            // Background pattern
             Positioned(
-              right: -15,
-              top: -15,
-              child: Text(
-                game.icon,
-                style: TextStyle(
-                  fontSize: 100,
-                  color: Colors.white.withValues(alpha: 0.08),
+              right: -20,
+              top: -20,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(60),
+                ),
+                child: Center(
+                  child: Text(
+                    game.icon,
+                    style: TextStyle(
+                      fontSize: 60,
+                      color: Colors.white.withValues(alpha: 0.2),
+                    ),
+                  ),
                 ),
               ),
             ),
+            
             // Content
             Padding(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,15 +243,32 @@ class _GameMenuNewState extends State<GameMenuNew> {
                   // Title and Icon
                   Row(
                     children: [
-                      Text(game.icon, style: TextStyle(fontSize: 32)),
-                      SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          game.icon,
+                          style: const TextStyle(fontSize: 24),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           game.title,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black26,
+                                blurRadius: 4,
+                                offset: Offset(1, 2),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -263,55 +277,95 @@ class _GameMenuNewState extends State<GameMenuNew> {
 
                   // Level Badge
                   Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.25),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
                     ),
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     child: Text(
                       'Level ${game.level}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
 
-                  // Progress Bar
+                  // Progress Section
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Confidence',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.8),
-                          fontSize: 10,
-                        ),
-                      ),
-                      SizedBox(height: 6),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: game.progress,
-                          minHeight: 6,
-                          backgroundColor: Colors.white.withValues(alpha: 0.2),
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white.withValues(alpha: 0.9),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Progress',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
+                          Text(
+                            '${(game.progress * 100).toStringAsFixed(0)}%',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        '${(game.progress * 100).toStringAsFixed(1)}%',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.7),
-                          fontSize: 9,
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(3),
+                          child: LinearProgressIndicator(
+                            value: game.progress,
+                            minHeight: 6,
+                            backgroundColor: Colors.transparent,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white.withValues(alpha: 0.9),
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ],
+              ),
+            ),
+            
+            // Shimmer effect
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.transparent,
+                      Colors.white.withValues(alpha: 0.1),
+                      Colors.transparent,
+                    ],
+                    stops: [0.0, 0.5, 1.0],
+                  ),
+                ),
               ),
             ),
           ],
@@ -428,7 +482,7 @@ class _GameMenuNewState extends State<GameMenuNew> {
               ),
               SizedBox(height: 10),
               Text(
-                'Confidence: ${(game.progress * 100).toStringAsFixed(1)}%',
+                'Progress: ${(game.progress * 100).toStringAsFixed(0)}%',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.9),
                   fontSize: 14,

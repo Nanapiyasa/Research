@@ -2,11 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:confetti/confetti.dart';
+import '../auth_service.dart';
+import '../firebase_config.dart';
+import '../services/student_data_service.dart';
 import 'retail_level3_game.dart';
 
 class RetailLevel2Game extends StatelessWidget {
-  const RetailLevel2Game({Key? key}) : super(key: key);
+  final int initialTime;
+  
+  const RetailLevel2Game({Key? key, this.initialTime = 0}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -16,14 +23,16 @@ class RetailLevel2Game extends StatelessWidget {
         primarySwatch: Colors.orange,
         useMaterial3: true,
       ),
-      home: const LandscapeGame(),
+      home: LandscapeGame(initialTime: initialTime),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
 class LandscapeGame extends StatelessWidget {
-  const LandscapeGame({Key? key}) : super(key: key);
+  final int initialTime;
+  
+  const LandscapeGame({Key? key, required this.initialTime}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +42,7 @@ class LandscapeGame extends StatelessWidget {
       DeviceOrientation.landscapeRight,
     ]);
 
-    return const RetailBillingGameScreen();
+    return RetailBillingGameScreen(initialTime: initialTime);
   }
 }
 
@@ -50,7 +59,9 @@ class RetailItem {
 }
 
 class RetailBillingGameScreen extends StatefulWidget {
-  const RetailBillingGameScreen({Key? key}) : super(key: key);
+  final int initialTime;
+  
+  const RetailBillingGameScreen({Key? key, this.initialTime = 0}) : super(key: key);
 
   @override
   State<RetailBillingGameScreen> createState() => _RetailBillingGameScreenState();
@@ -75,6 +86,9 @@ class _RetailBillingGameScreenState extends State<RetailBillingGameScreen> with 
   // Timer variables
   int _seconds = 0;
   Timer? _timer;
+  
+  // Game statistics
+  int attempts = 1; // Keep attempts fixed at 1 for level 2 as requested
   
   // Animation controllers
   late AnimationController _scanAnimationController;
@@ -121,6 +135,7 @@ class _RetailBillingGameScreenState extends State<RetailBillingGameScreen> with 
       curve: Curves.elasticInOut,
     ));
     
+    _seconds = widget.initialTime;
     _animationsInitialized = true;
     _startTimer();
   }
@@ -298,6 +313,63 @@ class _RetailBillingGameScreenState extends State<RetailBillingGameScreen> with 
       }
     });
   }
+  
+  String _formatTime(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _saveLevelData() async {
+    try {
+      final authService = AuthService();
+      final studentId = authService.currentStudentId;
+      if (studentId == null) {
+        print('No student ID available - skipping save');
+        return;
+      }
+      
+      print('DEBUG: Saving retail level 2 results for student: $studentId');
+      
+      // Save activity time for tracking
+      final completionTime = _seconds;
+      final percentage = ((score / (targetBilledItems * 10)) * 100).round();
+      
+      Map<String, dynamic> activityData = {
+        'studentId': studentId,
+        'moduleName': 'Retail',
+        'startTime': DateTime.now().subtract(Duration(seconds: completionTime)).toIso8601String(),
+        'endTime': DateTime.now().toIso8601String(),
+        'completionPercentage': percentage.roundToDouble(),
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+
+      final firestore = FirebaseFirestore.instance;
+      final activityDoc = await firestore.collection('activities').add(activityData);
+      print('DEBUG: Retail Level 2 activity time saved successfully');
+      
+      // Store individual level data using new service with activityId
+      await StudentDataService.storeLevelData(
+        studentId: studentId,
+        level: 2,
+        score: score,
+        attempts: attempts,
+        timeSpent: _seconds,
+        difficultyLevel: 'Medium',
+        activityId: activityDoc.id, // Foreign key to activities collection
+      );
+      
+      print('DEBUG: Retail Level 2 data stored successfully');
+    } catch (e) {
+      print('Error saving retail level 2 results: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save game results: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -318,7 +390,10 @@ class _RetailBillingGameScreenState extends State<RetailBillingGameScreen> with 
     super.dispose();
   }
   
-  void _showLevelCompleteDialog() {
+  void _showLevelCompleteDialog() async {
+    // Save level data to student_data collection
+    await _saveLevelData();
+    
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -358,13 +433,36 @@ class _RetailBillingGameScreenState extends State<RetailBillingGameScreen> with 
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                'Time: $_seconds seconds\nItems Billed: $totalBilledItems/$targetBilledItems',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
+              const SizedBox(height: 5),
+              const Text(
+                'Difficulty Level 02',
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Builder(
+                builder: (context) {
+                  final statsText = 'Time: $_seconds seconds\nScore: ${score}/100\nAttempts: $attempts';
+                  return Text(
+                    statsText,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '(10 marks for each correct step)',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 12,
                 ),
               ),
               const SizedBox(height: 20),
@@ -373,7 +471,7 @@ class _RetailBillingGameScreenState extends State<RetailBillingGameScreen> with 
                   Navigator.of(context).pop();
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (context) => const RetailCustomerGameScreen(),
+                      builder: (context) => RetailCustomerGameScreen(initialTime: _seconds),
                     ),
                   );
                 },
@@ -452,7 +550,7 @@ class _RetailBillingGameScreenState extends State<RetailBillingGameScreen> with 
                         ),
                       ),
                       Text(
-                        'Time: $_seconds',
+                        'Time: ${_formatTime(_seconds)}',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,

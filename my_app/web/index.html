@@ -31,6 +31,26 @@
 
   <title>my_app</title>
   <link rel="manifest" href="manifest.json">
+<!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  
+  <!-- Firebase Configuration -->
+  <script>
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyB2u83gB6iOVF0ZLmwrVpxFa_76LQiUt0Y",
+      authDomain: "nanapiyasa-mob.firebaseapp.com",
+      projectId: "nanapiyasa-mob",
+      storageBucket: "nanapiyasa-mob.firebasestorage.app",
+      messagingSenderId: "462572285130",
+      appId: "1:462572285130:web:1234567890abcdef"
+    };
+    
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

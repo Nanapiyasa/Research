@@ -14,11 +14,13 @@ class AuthService {
   // Login state
   bool _isLoggedIn = false;
   String? _currentUserName;
+  String? _currentStudentId;
   String? _currentQRCode;
 
   // Getters
   bool get isLoggedIn => _isLoggedIn;
   String? get currentUserName => _currentUserName;
+  String? get currentStudentId => _currentStudentId;
   String? get currentQRCode => _currentQRCode;
 
   /// Scan QR code and authenticate user
@@ -40,6 +42,7 @@ class AuthService {
         _currentQRCode = qrCode;
         _isLoggedIn = true;
         _currentUserName = 'Player One';
+        _currentStudentId = null;
 
         return {
           'success': true,
@@ -65,10 +68,25 @@ class AuthService {
     }
   }
 
+  /// Login with username and password
+  Map<String, dynamic> login(String username, {String? studentId}) {
+    _isLoggedIn = true;
+    _currentUserName = username;
+    _currentStudentId = studentId;
+    _currentQRCode = "LOGIN_${DateTime.now().millisecondsSinceEpoch}";
+    return {
+      'success': true,
+      'message': 'Logged in successfully!',
+      'username': username,
+      'studentId': studentId,
+    };
+  }
+
   /// Logout user
   void logout() {
     _isLoggedIn = false;
     _currentUserName = null;
+    _currentStudentId = null;
     _currentQRCode = null;
   }
 

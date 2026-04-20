@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:confetti/confetti.dart';
-import '../game_menu_new.dart';
+import 'game_menu_new.dart';
 
 class FruitSaladLevel4Game extends StatelessWidget {
   const FruitSaladLevel4Game({Key? key}) : super(key: key);

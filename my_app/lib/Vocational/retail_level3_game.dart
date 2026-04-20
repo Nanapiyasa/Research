@@ -2,11 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:confetti/confetti.dart';
-import '../game_menu_new.dart';
+import '../auth_service.dart';
+import '../firebase_config.dart';
+import '../services/student_data_service.dart';
+import 'game_menu_new.dart';
 
 class RetailLevel3Game extends StatelessWidget {
-  const RetailLevel3Game({Key? key}) : super(key: key);
+  final int initialTime;
+  
+  const RetailLevel3Game({Key? key, this.initialTime = 0}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -16,14 +23,16 @@ class RetailLevel3Game extends StatelessWidget {
         primarySwatch: Colors.orange,
         useMaterial3: true,
       ),
-      home: const LandscapeGame(),
+      home: LandscapeGame(initialTime: initialTime),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
 class LandscapeGame extends StatelessWidget {
-  const LandscapeGame({Key? key}) : super(key: key);
+  final int initialTime;
+  
+  const LandscapeGame({Key? key, required this.initialTime}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +42,7 @@ class LandscapeGame extends StatelessWidget {
       DeviceOrientation.landscapeRight,
     ]);
 
-    return const RetailCustomerGameScreen();
+    return RetailCustomerGameScreen(initialTime: initialTime);
   }
 }
 
@@ -52,7 +61,9 @@ class RetailItem {
 }
 
 class RetailCustomerGameScreen extends StatefulWidget {
-  const RetailCustomerGameScreen({Key? key}) : super(key: key);
+  final int initialTime;
+  
+  const RetailCustomerGameScreen({Key? key, this.initialTime = 0}) : super(key: key);
 
   @override
   State<RetailCustomerGameScreen> createState() => _RetailCustomerGameScreenState();
@@ -76,6 +87,9 @@ class _RetailCustomerGameScreenState extends State<RetailCustomerGameScreen> wit
   // Timer variables
   int _seconds = 0;
   Timer? _timer;
+  
+  // Game statistics
+  int attempts = 1; // Default attempt count is 1
   
   // Animation controllers
   late AnimationController _scanAnimationController;
@@ -124,6 +138,7 @@ class _RetailCustomerGameScreenState extends State<RetailCustomerGameScreen> wit
       CurvedAnimation(parent: _shakeController, curve: Curves.elasticIn),
     );
     
+    _seconds = widget.initialTime;
     // Start scanning animation and timer
     _scanAnimationController.repeat(reverse: true);
     _startTimer();
@@ -246,8 +261,9 @@ class _RetailCustomerGameScreenState extends State<RetailCustomerGameScreen> wit
         }
       });
     } else {
-      // Wrong selection
+      // Wrong selection - increment attempts
       setState(() {
+        attempts++; // Increment attempt count for wrong answer
         currentMessage = 'Wrong item! Try again. Look for ${targetItem!.name}';
       });
       
@@ -272,11 +288,237 @@ class _RetailCustomerGameScreenState extends State<RetailCustomerGameScreen> wit
     _timer?.cancel();
   }
   
-  void _showLevelCompleteDialog() {
+  String _formatTime(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+
+  void _showFullModuleSummary() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          padding: const EdgeInsets.all(25),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF004E89), Color(0xFF002855)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.emoji_events,
+                      size: 40,
+                      color: Color(0xFFFF6B35),
+                    ),
+                    const SizedBox(width: 15),
+                    Text(
+                      '🏆 RETAIL MODULE COMPLETE 🏆',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFFF6B35),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Module Summary
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Color(0xFF004E89).withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Module Performance Summary',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF004E89),
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    
+                    // Level Performance
+                    _buildLevelSummary('Level 1', 'Categorization', 30, '3 steps completed'),
+                    const SizedBox(height: 10),
+                    _buildLevelSummary('Level 2', 'Billing', 100, '10 items billed'),
+                    const SizedBox(height: 10),
+                    _buildLevelSummary('Level 3', 'Shelf Organization', score, '$currentStep/$totalSteps steps'),
+                    const SizedBox(height: 15),
+                    
+                    // Overall Stats
+                    Container(
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF004E89).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildOverallStat('Total Module Score', '${score + 30 + 100}/230', Color(0xFF004E89)),
+                          const SizedBox(height: 10),
+                          _buildOverallStat('Total Time Spent', _formatTime(_seconds + widget.initialTime), Colors.grey.shade700),
+                          const SizedBox(height: 10),
+                          _buildOverallStat('Total Attempts', '${attempts + 1 + 1}', Colors.grey.shade700),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Action Buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
+                    child: const Text('Review Levels'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (context) => GameMenuNew()),
+                        (route) => false,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFFFF6B35),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
+                    child: const Text('Back to Game Menu'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLevelSummary(String level, String skill, int maxScore, String description) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            level,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF004E89),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            skill,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            description,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Score: $maxScore points',
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF004E89),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverallStat(String label, String value, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+  
+  void _showLevelCompleteDialog() async {
     _stopTimer();
     setState(() {
       isGameComplete = true;
     });
+    
+    // Save level data to student_data collection
+    await _saveLevelData();
     
     showDialog(
       context: context,
@@ -299,28 +541,51 @@ class _RetailCustomerGameScreenState extends State<RetailCustomerGameScreen> wit
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: Color(0xFFFF6B35),
-                  borderRadius: BorderRadius.circular(40),
-                ),
-                child: Icon(
-                  Icons.emoji_events,
-                  size: 50,
-                  color: Colors.white,
-                ),
+              const Icon(
+                Icons.emoji_events,
+                size: 60,
+                color: Colors.white,
               ),
-              const SizedBox(height: 20),
-              Text(
-                'Congratulations',
+              const SizedBox(height: 15),
+              const Text(
+                'Level 3 Complete!',
                 style: TextStyle(
+                  color: Colors.white,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFFFF6B35),
                 ),
+              ),
+              const SizedBox(height: 5),
+              const Text(
+                'Difficulty Level 03',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Builder(
+                builder: (context) {
+                  final statsText = 'Time: ${_formatTime(_seconds)}\nScore: $score/100\nAttempts: $attempts';
+                  return Text(
+                    statsText,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '(10 marks for each correct step)',
                 textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 12,
+                ),
               ),
               const SizedBox(height: 10),
               Text(
@@ -330,6 +595,106 @@ class _RetailCustomerGameScreenState extends State<RetailCustomerGameScreen> wit
                   color: Colors.grey.shade700,
                 ),
                 textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 15),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      'Module Summary',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFFF6B35),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Builder(
+                      builder: (context) {
+                        final totalScore = score; // This level score (10 steps * 10 marks = 100)
+                        final totalTime = _seconds + widget.initialTime; // This level time + previous levels time
+                        final totalAttempts = attempts; // This level attempts
+                        
+                        return Column(
+                          children: [
+                            Text(
+                              'Total Marks: $totalScore/100',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Total Time: ${_formatTime(totalTime)}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Total Attempts: $totalAttempts',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Color(0xFFFF6B35).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Color(0xFFFF6B35).withOpacity(0.3)),
+                              ),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    '🏆 RETAIL MODULE COMPLETE 🏆',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFFFF6B35),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'All three levels completed successfully!',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.black87,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Level 1: Categorization (30 points)\n'
+                                    'Level 2: Billing (100 points)\n'
+                                    'Level 3: Shelf Organization (100 points)',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 20),
               Row(
@@ -364,7 +729,7 @@ class _RetailCustomerGameScreenState extends State<RetailCustomerGameScreen> wit
                         ),
                       ),
                       Text(
-                        '${_seconds}s',
+                        _formatTime(_seconds),
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -397,12 +762,7 @@ class _RetailCustomerGameScreenState extends State<RetailCustomerGameScreen> wit
               const SizedBox(height: 25),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(
-                      builder: (context) => GameMenuNew(),
-                    ),
-                    (route) => false,
-                  );
+                  _showFullModuleSummary();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFFFF6B35),
@@ -427,6 +787,57 @@ class _RetailCustomerGameScreenState extends State<RetailCustomerGameScreen> wit
     );
   }
   
+  Future<void> _saveLevelData() async {
+    try {
+      final authService = AuthService();
+      final studentId = authService.currentStudentId;
+      if (studentId == null) {
+        print('No student ID available - skipping save');
+        return;
+      }
+      
+      print('DEBUG: Saving retail level 3 results for student: $studentId');
+      
+      // Save activity time for tracking
+      final completionTime = _seconds;
+      final percentage = ((score / (totalSteps * 10)) * 100).round();
+      
+      Map<String, dynamic> activityData = {
+        'studentId': studentId,
+        'moduleName': 'Retail',
+        'startTime': DateTime.now().subtract(Duration(seconds: completionTime)).toIso8601String(),
+        'endTime': DateTime.now().toIso8601String(),
+        'completionPercentage': percentage.roundToDouble(),
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+
+      final firestore = FirebaseFirestore.instance;
+      final activityDoc = await firestore.collection('activities').add(activityData);
+      print('DEBUG: Retail Level 3 activity time saved successfully');
+      
+      // Store individual level data using new service with activityId
+      await StudentDataService.storeLevelData(
+        studentId: studentId,
+        level: 3,
+        score: score,
+        attempts: attempts,
+        timeSpent: _seconds,
+        difficultyLevel: 'Hard',
+        activityId: activityDoc.id, // Foreign key to activities collection
+      );
+      
+      print('DEBUG: Retail Level 3 data stored successfully');
+    } catch (e) {
+      print('Error saving retail level 3 results: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save game results: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
@@ -434,6 +845,7 @@ class _RetailCustomerGameScreenState extends State<RetailCustomerGameScreen> wit
     _popController.dispose();
     _shakeController.dispose();
     _confettiController.dispose();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -497,7 +909,7 @@ class _RetailCustomerGameScreenState extends State<RetailCustomerGameScreen> wit
                         ),
                       ),
                       Text(
-                        'Time: $_seconds',
+                        'Time: ${_formatTime(_seconds)}',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,

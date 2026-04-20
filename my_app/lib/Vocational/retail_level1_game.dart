@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:confetti/confetti.dart';
 import 'retail_level2_game.dart';
+import '../auth_service.dart';
 
 class RetailLevel1Game extends StatelessWidget {
   const RetailLevel1Game({Key? key}) : super(key: key);
@@ -123,7 +126,6 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
     ));
     
     _animationsInitialized = true;
-    _startTimer();
   }
   
   void _initializeGame() {
@@ -199,6 +201,7 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
               _setupCurrentStep();
             } else {
               isGameComplete = true;
+              _saveGameResults();
               _showLevelCompleteDialog();
             }
           });
@@ -226,6 +229,72 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
         });
       }
     });
+  }
+  
+  String _formatTime(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _saveGameResults() async {
+    try {
+      if (Firebase.apps.isEmpty) {
+        print('DEBUG: Firebase not initialized - skipping retail game results save');
+        return;
+      }
+
+      final firestore = FirebaseFirestore.instance;
+      final authService = AuthService();
+      final studentId = authService.currentStudentId;
+      if (studentId == null) {
+        print('No student ID available - skipping save');
+        return;
+      }
+      
+      print('DEBUG: Saving retail game results for student: $studentId');
+      
+      // Calculate game statistics
+      final maxScore = categories.length * 10; // 10 points per category
+      final percentage = (score / maxScore) * 100;
+      final completionTime = _seconds;
+      
+      print('DEBUG: Retail game stats - Score: $score/$maxScore, Percentage: $percentage%, Time: $completionTime seconds');
+      
+      // Save module progress
+      Map<String, dynamic> moduleProgress = {
+        'studentId': studentId,
+        'moduleKey': 'retail_level_01',
+        'moduleName': 'Retail Level 1',
+        'completionPercentage': percentage.roundToDouble(),
+        'totalTimeSpent': completionTime,
+        'lastAccessed': DateTime.now().toIso8601String(),
+        'isCompleted': percentage >= 100,
+        'startedAt': DateTime.now().subtract(Duration(seconds: completionTime)).toIso8601String(),
+        'completedAt': DateTime.now().toIso8601String(),
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+
+      await firestore.collection('module_progress').add(moduleProgress);
+      print('DEBUG: Retail module progress saved successfully - Completion: ${percentage.roundToDouble()}%');
+
+      // Save activity time
+      Map<String, dynamic> activityTime = {
+        'studentId': studentId,
+        'activityType': 'retail_game',
+        'startTime': DateTime.now().subtract(Duration(seconds: completionTime)).toIso8601String(),
+        'endTime': DateTime.now().toIso8601String(),
+        'duration': completionTime,
+        'completionPercentage': percentage.roundToDouble(),
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+
+      await firestore.collection('activities').add(activityTime);
+      print('DEBUG: Retail activity time saved successfully');
+
+    } catch (e) {
+      print('DEBUG: Error saving retail game results: $e');
+    }
   }
 
   @override
@@ -289,7 +358,7 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
               ),
               const SizedBox(height: 10),
               Text(
-                'Time: $_seconds seconds\nScore: $score',
+                'Time: ${_formatTime(_seconds)}\nScore: $score',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
@@ -332,7 +401,12 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
       DeviceOrientation.landscapeRight,
     ]);
     
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async {
+        // Always allow back navigation to go to previous screen
+        return true;
+      },
+      child: Scaffold(
       body: Stack(
         children: [
           // Background
@@ -376,7 +450,7 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
                         ),
                       ),
                       Text(
-                        'Time: $_seconds',
+                        'Time: ${_formatTime(_seconds)}',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -441,9 +515,12 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
                           onPressed: () {
                             setState(() {
                               isUnderstood = true;
-                              currentMessage = 'Great! Now start dragging ${currentCategory.toLowerCase()} to the drop area';
+                              currentMessage = 'Great! Now start dragging ${currentCategory.toLowerCase()} to drop area';
                               gameStarted = true;
                             });
+                            
+                            // Start timer when game begins
+                            _startTimer();
                             
                             // Pop out animation
                             _popController.forward().then((_) {
@@ -766,7 +843,7 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
                           onPressed: () {
                             Navigator.of(context).pushReplacement(
                               MaterialPageRoute(
-                                builder: (context) => const RetailLevel2Game(),
+                                builder: (context) => RetailLevel2Game(initialTime: _seconds),
                               ),
                             );
                           },
@@ -793,6 +870,7 @@ class _RetailGameScreenState extends State<RetailGameScreen> with TickerProvider
               ),
             ),
         ],
+      ),
       ),
     );
   }

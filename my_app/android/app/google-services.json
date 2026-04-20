@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "221005104430",
+    "project_id": "nanapiyasa-student-tracker",
+    "storage_bucket": "nanapiyasa-student-tracker.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:221005104430:android:0baedf8ff19036eceda6bf",
+        "android_client_info": {
+          "package_name": "com.nanapiyasa.student"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC1xoM0x9gWPcSrxFH_uLfV9Hb_lW1Gl2M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

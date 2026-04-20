@@ -16,14 +16,16 @@ class FruitMatchGame extends StatelessWidget {
         primarySwatch: Colors.orange,
         useMaterial3: true,
       ),
-      home: const LandscapeGame(),
+      home: LandscapeGame(initialTime: 0),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
 class LandscapeGame extends StatelessWidget {
-  const LandscapeGame({Key? key}) : super(key: key);
+  final int initialTime;
+  
+  const LandscapeGame({Key? key, required this.initialTime}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -33,12 +35,14 @@ class LandscapeGame extends StatelessWidget {
       DeviceOrientation.landscapeRight,
     ]);
 
-    return const GameScreen();
+    return GameScreen(initialTime: initialTime);
   }
 }
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({Key? key}) : super(key: key);
+  final int initialTime;
+  
+  const GameScreen({Key? key, this.initialTime = 0}) : super(key: key);
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -110,6 +114,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     _generateNewRound();
     _startQuestionAnimation();
+    _seconds = widget.initialTime;
     _startTimer();
   }
 
@@ -120,9 +125,23 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       });
     });
   }
+  
+  String _formatTime(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
 
   @override
   void dispose() {
+    // Reset to portrait orientation when exiting game
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    
     _scaleController.dispose();
     _questionAnimationController.dispose();
     _dialogAnimationController.dispose();
@@ -315,7 +334,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const FruitMatchLevel2Game(),
+                              builder: (context) => FruitMatchLevel2Game(initialTime: _seconds),
                             ),
                           );
                         },
@@ -372,7 +391,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async {
+        // Always allow back navigation to go to previous screen
+        return true;
+      },
+      child: Scaffold(
       body: Stack(
         children: [
           // Kitchen background
@@ -569,15 +593,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Text(
-                                      'Find the Ripe Fruit',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 10),
                                     _buildQuestionCard(),
                                   ],
                                 ),
@@ -621,6 +636,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -663,6 +679,31 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     );
                   },
                 ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.orange,
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Text(
+                'Find Ripe Fruit',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
           ],
@@ -866,7 +907,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           ),
           const SizedBox(width: 8),
           Text(
-            '${_seconds}s',
+            _formatTime(_seconds),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 18,
@@ -896,7 +937,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           ),
           const SizedBox(width: 6),
           Text(
-            '${_seconds}s',
+            _formatTime(_seconds),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 14,

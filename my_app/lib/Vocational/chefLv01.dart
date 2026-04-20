@@ -5,9 +5,14 @@ import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../auth_service.dart';
 
 class KitchenLearningGame extends StatefulWidget {
-  const KitchenLearningGame({super.key});
+  final int initialTime;
+  
+  const KitchenLearningGame({Key? key, this.initialTime = 0}) : super(key: key);
 
   @override
   State<KitchenLearningGame> createState() => _KitchenLearningGameState();
@@ -32,6 +37,11 @@ class KitchenItem {
 class _KitchenLearningGameState extends State<KitchenLearningGame>
     with TickerProviderStateMixin {
   late FlutterTts flutterTts;
+
+  // Timer variables
+  int _seconds = 0;
+  Timer? _timer;
+  bool _gameStarted = false;
 
   final List<KitchenItem> kitchenItems = [
     KitchenItem(
@@ -136,6 +146,22 @@ class _KitchenLearningGameState extends State<KitchenLearningGame>
     startNewRound();
   }
 
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _seconds++;
+        });
+      }
+    });
+  }
+
+  String _formatTime(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
+
   Future<void> _initTts() async {
     await flutterTts.setVolume(1.0);
     await flutterTts.setPitch(1.2);
@@ -157,6 +183,7 @@ class _KitchenLearningGameState extends State<KitchenLearningGame>
     shakeController.dispose();
     pulseController.dispose();
     slideController.dispose();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -180,7 +207,13 @@ class _KitchenLearningGameState extends State<KitchenLearningGame>
       wrongAttempt = false;
       selectedItemId = null;
     });
-    
+
+    // Start timer on first round
+    if (!_gameStarted && completedItems.isEmpty) {
+      _gameStarted = true;
+      _startTimer();
+    }
+
     slideController.forward(from: 0);
   }
 
@@ -191,7 +224,12 @@ class _KitchenLearningGameState extends State<KitchenLearningGame>
   }
 
   void handleItemSelection(KitchenItem selectedItem) {
-    setState(() => selectedItemId = selectedItem.id);
+    setState(() {
+      selectedItemId = selectedItem.id;
+      attempts++;
+    });
+
+    print('DEBUG: Attempt $attempts - Selected ${selectedItem.name} (ID: ${selectedItem.id})');
 
     if (selectedItem.id == currentTarget!.id) {
       handleCorrect();
@@ -212,16 +250,156 @@ class _KitchenLearningGameState extends State<KitchenLearningGame>
     });
     confettiController.play();
     speak('Excellent! You found the ${currentTarget!.name}! Well done!');
+    
+    print('DEBUG: Completed items: ${completedItems.length}/${kitchenItems.length}');
+    print('DEBUG: All completed: ${allCompleted}');
 
     Future.delayed(const Duration(seconds: 3), () {
       confettiController.stop();
       setState(() => showCelebration = false);
       if (completedItems.length == kitchenItems.length) {
+        print('DEBUG: Game completed, calling _saveGameResults()');
         speak('Wonderful! You\'ve learned all the kitchen items!', slower: true);
+        _saveGameResults();
+        _showLevelCompleteDialog();
       } else {
+        print('DEBUG: Starting new round');
         startNewRound();
       }
     });
+  }
+
+  Future<void> _saveGameResults() async {
+    try {
+      if (Firebase.apps.isEmpty) {
+        print('Firebase not initialized - skipping game results save');
+        return;
+      }
+
+      final firestore = FirebaseFirestore.instance;
+      final authService = AuthService();
+      final studentId = authService.currentStudentId;
+      if (studentId == null) {
+        print('No student ID available - skipping save');
+        return;
+      }
+      
+      // Calculate game statistics
+      final maxScore = kitchenItems.length;
+      final percentage = (score / maxScore) * 100;
+      final completionTime = _seconds;
+      
+      // Save module progress
+      Map<String, dynamic> moduleProgress = {
+        'studentId': studentId,
+        'moduleKey': 'chef_level_01',
+        'moduleName': 'Chef Level 1',
+        'completionPercentage': percentage.roundToDouble(),
+        'totalTimeSpent': completionTime,
+        'lastAccessed': DateTime.now().toIso8601String(),
+        'isCompleted': percentage >= 100,
+        'startedAt': DateTime.now().subtract(Duration(seconds: completionTime)).toIso8601String(),
+        'completedAt': DateTime.now().toIso8601String(),
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+
+      await firestore.collection('module_progress').add(moduleProgress);
+      print('Module progress saved successfully');
+
+      // Save activity time
+      Map<String, dynamic> activityTime = {
+        'studentId': studentId,
+        'activityType': 'chef_game',
+        'startTime': DateTime.now().subtract(Duration(seconds: completionTime)).toIso8601String(),
+        'endTime': DateTime.now().toIso8601String(),
+        'duration': completionTime,
+        'completionPercentage': percentage.roundToDouble(),
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+
+      await firestore.collection('activities').add(activityTime);
+      print('Activity time saved successfully');
+
+    } catch (e) {
+      print('Error saving game results: $e');
+    }
+  }
+
+  void _showLevelCompleteDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(25),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.emoji_events,
+                size: 60,
+                color: Colors.white,
+              ),
+              const SizedBox(height: 15),
+              const Text(
+                'Level 1 Complete!',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Time: ${_formatTime(_seconds)}\nScore: $score',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Color(0xFF6366F1),
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+                child: const Text(
+                  'Continue',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void handleWrong() {
@@ -340,6 +518,39 @@ class _KitchenLearningGameState extends State<KitchenLearningGame>
                     fontSize: 13,
                     color: Colors.grey.shade600,
                     fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF6366F1).withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.timer_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  _formatTime(_seconds),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
                   ),
                 ),
               ],
@@ -501,6 +712,12 @@ class _KitchenLearningGameState extends State<KitchenLearningGame>
                 color: const Color(0xFF10B981),
                 isPrimary: true,
                 onPressed: () {
+                  // Start timer when practice begins
+                  if (!_gameStarted) {
+                    _gameStarted = true;
+                    _startTimer();
+                  }
+
                   // Slide out the introduction page
                   slideController.reverse().then((_) {
                     setState(() => page = 'game');
